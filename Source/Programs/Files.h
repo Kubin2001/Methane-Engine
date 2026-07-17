@@ -1,0 +1,54 @@
+#pragma once
+#include "UI.h"
+#include "Window.h"
+
+
+std::vector<std::string> ReadCsvLine(const std::string& line, const char separator = ',');
+
+std::vector<std::vector<std::string>> ReadCsv(const std::string& path, const char separator = ',');
+
+
+class FileExplorer {
+	private:
+		MT::Window window{};
+		MT::Renderer* renderer = nullptr;
+		SDL_Event event = {};
+
+		std::string currentPath = "";
+		std::string retPath = "";
+		bool finished = false;
+		int absoluteY = 0;
+		int scroolSpeed = 20;
+
+		std::vector<std::string> extensionFilter = {};
+
+		std::unordered_map<std::string, MT::Texture*> extensionsTextures;
+
+		UI* ui = nullptr;
+
+		LocalTexMan texMan;
+
+		std::vector<ClickBox*> folderElements;
+		std::vector<ClickBox*> folderElementsNames;
+
+		Label* selectedBox = nullptr; // Background hoover to selected element
+
+		ClickBox* selectedElement = nullptr; // Reference to already selected folder element
+
+		std::string Maintain();
+
+		void Input();
+
+		void Update();
+
+		void CreateElement(int x, int y, const std::string& dirPath, const std::string& dirName, const std::string& texture
+			, const std::string& extension);
+
+		bool ExtensionAllowed(const std::string &ext);
+
+	public:
+		FileExplorer(int scroolSpeed = 20, const std::vector<std::string> extensionFilter = {});
+
+		std::string Open(const std::string& path = "");
+
+};
