@@ -28,6 +28,8 @@ void Game::Start() {
 
 	window.SetFullScreen();
 	renderer->Resize(window.GetSize().x, window.GetSize().y);
+	Global::windowWidth = window.GetSize().x;
+	Global::windowHeight = window.GetSize().y;
 
 	TexMan::Start(renderer);
 	TexMan::DeepLoad("Textures");

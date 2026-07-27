@@ -243,8 +243,9 @@ Point Font::CalculatePredefinedSize(const std::string& fontText, const int inter
 			predSize.y += interline;
 			if (currentLenght > longest) {
 				longest = currentLenght;
-				currentLenght = 0;
+
 			}
+			currentLenght = 0;
 			continue;
 		}
 
@@ -257,7 +258,6 @@ Point Font::CalculatePredefinedSize(const std::string& fontText, const int inter
 	predSize.x = longest;
 	return predSize;
 }
-
 int Font::GetStandardInterline() {
 	return standardInterLine;
 }
@@ -561,6 +561,7 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 	}
 
 	TTF_Font* font = TTF_OpenFont(ttfPath, size);
+	TTF_SetFontHinting(font, TTF_HINTING_LIGHT);
 	if (font == nullptr) {
 		std::println("Cannot load font FontManager::CrateTempFontFromTTF for {} ", ttfPath);
 		return false;
@@ -632,7 +633,7 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 		SDL_BlitSurface(surfaces[i], nullptr, atlas, &tempRect);
 	}
 	
-	MT::Texture *tex = MT::LoadTextureFromSurface(atlas,TextureFilter::Linear);
+	MT::Texture *tex = MT::LoadTextureFromSurface(atlas,TextureFilter::Nearest);
 	
 	if (localTexMan == nullptr) {
 		if (!TexMan::AddTexture(tex, name)) {
