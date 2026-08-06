@@ -64,7 +64,7 @@ class MainInterface {
 
 		x += w + 5;
 		cbHandler = ui->LCreateClickBox(EditorGlobals::UILayerMenuBar, "fileListAdd", x, y, w, h, nullptr, font, "Add");
-		addList.Init(ui, cbHandler, w, h, { 40,40,40, 255 }, { "Scene", "Map", "Entity", "Rect"}, 0);
+		addList.Init(ui, cbHandler, w, h, { 40,40,40, 255 }, { "Scene", "Map", "Object"}, 0);
 		SetUpElem(cbHandler);
 		for (auto& listElem : addList.GetAll()) {
 			SetUpElem(listElem);
@@ -89,8 +89,8 @@ class MainInterface {
 		}
 
 		if (addList.IsExpanded()) {
-			if (addList[3]->ConsumeStatus()) {
-				addList[3]->SetColor(RandInt(0, 255), RandInt(0, 255), RandInt(0, 255));
+			if (addList[2]->ConsumeStatus()) {
+				addList[2]->SetColor(RandInt(0, 255), RandInt(0, 255), RandInt(0, 255));
 			}
 		}
 	}
@@ -98,6 +98,4 @@ class MainInterface {
 	~MainInterface() {
 		
 	}
-
-	
 };

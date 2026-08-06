@@ -45,6 +45,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${LIBS_DIR}/SDL2_ttf/include"
     "${LIBS_DIR}/glad/include"  
     "${LIBS_DIR}/glm"
+	"${LIBS_DIR}/Lua/include"
 	${SOURCE_SUBDIRS}
 )
 
@@ -53,6 +54,7 @@ target_link_directories(${PROJECT_NAME} PRIVATE
     "${LIBS_DIR}/SDL2Image/lib/"
     "${LIBS_DIR}/SDL2Mixer/lib/"
     "${LIBS_DIR}/SDL2_ttf/lib/"
+	"${LIBS_DIR}/Lua/lib/"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -62,6 +64,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL2_mixer
     SDL2_ttf
     opengl32  
+	Lua
 )
 
 file(GLOB ALL_DLLS "${CMAKE_SOURCE_DIR}/DLLS/*.dll")

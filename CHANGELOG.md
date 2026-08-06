@@ -11,7 +11,8 @@ Define Clear Project Based on Methane Framework //DONE
 	- Center Panel for game viev //DONE
 
 - Define basic Rect Adding
-	- Define RectObject (with color and size and texture)
+	- Integrate lua (sol)
+	- Define Object (with color and size and texture)
 	- Define Hierarchy layout
 	- Gets Added by up panel
 	- Is shown in object list

@@ -1,13 +1,9 @@
 #pragma once
 
-class HierarchyNode {
-
-};
-
-class RectangleNode : public HierarchyNode{
-
-};
+#include <string>
+#include <vector>
 
 class Hierarchy {
-
+public:
+	std::vector<std::string> nodes;
 };
