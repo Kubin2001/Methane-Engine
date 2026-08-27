@@ -7,6 +7,7 @@
 #include "Logger.h"
 
 #include "MainInterface.h"
+#include "AssetTree.h"
 
 class EngineScene : public Scene {
 	private:
@@ -15,6 +16,8 @@ class EngineScene : public Scene {
 	public:
 	void Init() override{
 		mainInterface = std::make_unique<MainInterface>(ui);
+		AssetTree tree;
+		tree.Reload("Textures");
 
 		Logger::Log("Engine Scene On");
 

@@ -9,6 +9,13 @@ Define Clear Project Based on Methane Framework //DONE
 	- Right panel for entity properties //DONE
 	- Down panel for assets (texures, sounds, scripts and so on) //DONE
 	- Center Panel for game viev //DONE
+	
+0.02
+- Define asset tree //DONE
+- Create Load Funtion //DONE
+- Create Asset Viev in down panel
+
+
 
 - Define basic Rect Adding
 	- Integrate lua (sol)
