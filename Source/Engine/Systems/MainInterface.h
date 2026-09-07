@@ -95,6 +95,8 @@ class MainInterface {
 		}
 	}
 
+	MT::Rect GetDownRect() { return downPanel->GetRectangle(); }
+
 	~MainInterface() {
 		
 	}

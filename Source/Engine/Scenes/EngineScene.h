@@ -12,13 +12,15 @@
 class EngineScene : public Scene {
 	private:
 	std::unique_ptr<MainInterface> mainInterface{};
+	AssetTree tree;
 
 	public:
 	void Init() override{
 		mainInterface = std::make_unique<MainInterface>(ui);
-		AssetTree tree;
-		tree.Reload("Textures");
-
+		tree.Init(ui);
+		
+		tree.ReBuild("Textures");
+		tree.CreateViev(mainInterface->GetDownRect(), "Textures");
 		Logger::Log("Engine Scene On");
 
 	}
