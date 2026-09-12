@@ -14,8 +14,12 @@ Define Clear Project Based on Methane Framework //DONE
 - Define asset tree //DONE
 - Create Load Funtion //DONE
 - Create Asset Viev in down panel //DONE
-- Define Root folder for folder object (std::optional)
-- Allow for graphical asset tree navigation
+- Define Root folder for folder object (std::optional) //DONE
+- Allow for graphical asset tree navigation //DONE
+- Improve the overall created system
+
+0.03
+- Create Basic Entity
 
 
 

@@ -29,6 +29,7 @@ class EngineScene : public Scene {
 
 	void FrameUpdate() override{
 		mainInterface->FrameUpdate();
+		tree.FrameUpdate(mainInterface->GetDownRect());
 	}
 
 	void Input(SDL_Event& event) {}

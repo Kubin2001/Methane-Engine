@@ -40,21 +40,32 @@ public:
 	std::string name{};
 	std::vector<Asset> assets{};
 	std::vector<std::string> subFolders{};
+	std::string root{};
 
 	AssetFolder() = default;
 
-	AssetFolder(const std::string& name, const std::vector<Asset>& assets, const std::vector<std::string>& subFolders)
-		:name(name), assets(assets), subFolders(subFolders){}
+	AssetFolder(const std::string& name, const std::vector<Asset>& assets, 
+		const std::vector<std::string>& subFolders, const std::string & root)
+		:name(name), assets(assets), subFolders(subFolders), root(root){}
 };
 
 class FolderViev {
-	std::vector<Label*> folders{};
-	std::vector<Label*> files{};
+	std::vector<ClickBox*> folders{};
+	std::vector<std::string> fullFoldersNames{};
+	std::vector<ClickBox*> files{};
+	ClickBox* root = nullptr;
+	std::string rootName{};
 
 public:
 	FolderViev() = default;
 
 	void Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folder);
+
+	void Clear(UI *ui);
+
+	std::string SubfolderUpdate();
+
+	std::string RootUpdate();
 
 };
 
@@ -68,12 +79,26 @@ public:
 	void Init(UI* ui) {
 		this->ui = ui;
 	}
-	void ReBuild(const std::string &path);
+	void ReBuild(const std::string &path, const std::string& root = "");
 
 	void CreateViev(const MT::Rect& bounds, const std::string& folderName) {
+		currentViev.Clear(ui);
 		auto fIter = folders.find(folderName);
 		if (fIter != folders.end()) {
 			currentViev.Create(ui, bounds, fIter->second);
+		}
+	}
+
+	void FrameUpdate(const MT::Rect& bounds) {
+		std::string folderOut = currentViev.SubfolderUpdate();
+		if (!folderOut.empty()) {
+			CreateViev(bounds, folderOut);
+			return;
+		}
+		std::string rootName = currentViev.RootUpdate();
+		if (!rootName.empty()) {
+			CreateViev(bounds, rootName);
+			return;
 		}
 	}
 };
