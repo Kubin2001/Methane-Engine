@@ -4,8 +4,11 @@
 
 #include "Globals.h"
 
+unsigned int folderID = 1;
 
-void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folder) {
+
+void FolderViev::Create(UI *ui, const MT::Rect& bounds, const std::unordered_map<unsigned int, AssetFolder> &foldersMap,
+	unsigned int id) {
 	int xStart = bounds.x + 10;
 	int yStart = bounds.y + 10;
 
@@ -16,6 +19,21 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folde
 	int step = size + 50;
 	Font* font = ui->GetFont("arial12");
 
+	const AssetFolder* folder = nullptr;
+	auto folderIter = foldersMap.find(id);
+	if (folderIter == foldersMap.end()) {
+		throw std::runtime_error("Unexisting folder this should not exist");
+	}
+	folder = &folderIter->second;
+
+	const AssetFolder* root = nullptr;
+	auto rootIter = foldersMap.find(folder->root);
+	if (rootIter != foldersMap.end()) {
+		root = &rootIter->second;
+	}
+
+
+
 	auto FillElem = [](UIElemBase* elem, const std::string &text, int size) {
 		elem->text = text;
 		elem->SetRenderTextType(TextRenderType::CenteredX);
@@ -24,22 +42,30 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folde
 	};
 
 	// Root
-	if (folder.root != "") {
+	if (root) {
 		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size,
 			TexMan::GetTex("RootFolderIcon"), font);
-		FillElem(cb, std::filesystem::path(folder.root).stem().string().substr(0, 12), size);
-		rootName = std::filesystem::path(folder.root).stem().string();
-		root = cb;
+		FillElem(cb, std::filesystem::path(root->path).stem().string().substr(0, 12), size);
+		rootId = folder->root;
+		rootCb = cb;
 		x += step;
 	}
 
 	// SubFolders
-	for (auto &subFolder : folder.subFolders) {
+	for (auto &subFolder : folder->subFolders) {
+		const AssetFolder* sFolder = nullptr;
+		auto sFolderIter = foldersMap.find(subFolder);
+		if (sFolderIter != foldersMap.end()) {
+			sFolder = &sFolderIter->second;
+		}
+		if (!sFolder) {
+			continue;
+		}
 		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, 
 			TexMan::GetTex("FeFolderIcon"),font);
-		FillElem(cb, std::filesystem::path(subFolder).stem().string().substr(0, 12), size);
+		FillElem(cb, std::filesystem::path(sFolder->path).stem().string().substr(0, 12), size);
 		folders.emplace_back(cb);
-		fullFoldersNames.emplace_back(subFolder);
+		foldersId.emplace_back(subFolder);
 		x += step;
 		if (x > maxX) {
 			x = xStart;
@@ -48,7 +74,7 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folde
 	}
 
 	// Assets
-	for (auto& asset : folder.assets) {
+	for (auto& asset : folder->assets) {
 		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size,
 			TexMan::GetTex("pngTex"), font);
 		FillElem(cb, std::filesystem::path(asset.name).stem().string().substr(0, 12), size);
@@ -69,56 +95,63 @@ void FolderViev::Clear(UI* ui) {
 		ui->DeleteElement(lb->GetName());
 	}
 	folders.clear();
-	fullFoldersNames.clear();
-	rootName.clear();
+	foldersId.clear();
+	rootId = 0;
 	files.clear();
-	if (root) {
-		ui->DeleteElement(root->GetName());
-		root = nullptr;
+	if (rootCb) {
+		ui->DeleteElement(rootCb->GetName());
+		rootCb = nullptr;
 	}
 }
 
-std::string FolderViev::SubfolderUpdate() {
+unsigned int FolderViev::SubfolderUpdate() {
 	for (size_t i = 0; i < folders.size(); i++) {
 		auto& folder = folders[i];
 		if (folder->ConsumeStatus()) {
-			return fullFoldersNames[i];
+			return foldersId[i];
 		}
 	}
-	return "";
+	return 0u;
 }
 
-std::string FolderViev::RootUpdate() {
-	if (root && root->ConsumeStatus()) {
-		return rootName;
+unsigned int FolderViev::RootUpdate() {
+	if (rootCb && rootCb->ConsumeStatus()) {
+		return rootId;
 	}
-	return "";
+	return 0;
 }
 
-void AssetTree::ReBuild(const std::string& strPath, const std::string &root) {
+void AssetTree::ReBuild(const std::string& path, unsigned int rootId) {
 	namespace fs = std::filesystem;
 
-	if (!fs::exists(strPath)) {
+	if (!fs::exists(path)) {
 		return;
 	}
-	std::string folderName = std::filesystem::path(strPath).stem().string();
-	std::vector<std::string> subFolders;
-	std::vector<Asset> assets;
-	for (auto& entry : fs::directory_iterator(strPath)) {
-		std::filesystem::path path = entry.path();
-		if (entry.is_directory()) {
-			subFolders.emplace_back(path.stem().string());
-		}
-		else {
-			assets.emplace_back(path);
-		}
-	}
-	auto foldersIter = folders.find(strPath);
-	if (foldersIter == folders.end()) {
-		folders[folderName] = AssetFolder(strPath, assets, subFolders, root);
+	AssetFolder* root = nullptr;
+	unsigned int id = folderID++;
+	auto folderIter = folders.find(rootId);
+	if (folderIter != folders.end()) {
+		root = &folderIter->second;
+		root->subFolders.emplace_back(id);
 	}
 
-	for (auto& folder : subFolders) {
-		ReBuild(strPath + "/" + folder, strPath);
+	std::string folderName = std::filesystem::path(path).stem().string();
+	std::vector<Asset> assets;
+	for (auto& entry : fs::directory_iterator(path)) {
+		std::filesystem::path subPath = entry.path();
+		if (!entry.is_directory()) {
+			assets.emplace_back(subPath);
+		}
+	}
+	auto foldersIter = folders.find(id);
+	if (foldersIter == folders.end()) {
+		folders[id] = AssetFolder(folderName, assets, path, rootId);
+	}
+
+	for (auto& entry : fs::directory_iterator(path)) {
+		std::filesystem::path subPath = entry.path();
+		if (entry.is_directory()) {
+			ReBuild(subPath.string(), id);
+		}
 	}
 }

@@ -20,7 +20,7 @@ class EngineScene : public Scene {
 		tree.Init(ui);
 		
 		tree.ReBuild("Textures");
-		tree.CreateViev(mainInterface->GetDownRect(), "Textures");
+		tree.CreateViev(mainInterface->GetDownRect(), 1);
 		Logger::Log("Engine Scene On");
 
 	}

@@ -21,10 +21,10 @@ public:
 
 	Asset(const std::filesystem::path& path) {
 		std::string extension = path.extension().string();
-		if (extension == "wav") {
+		if (extension == "wav.") {
 			type = AssetType::Sound;
 		}
-		else if (extension == "png") {
+		else if (extension == "png.") {
 			type = AssetType::Texture;
 		}
 		else {
@@ -38,40 +38,41 @@ public:
 class AssetFolder {
 public:
 	std::string name{};
+	std::filesystem::path path;
 	std::vector<Asset> assets{};
-	std::vector<std::string> subFolders{};
-	std::string root{};
+	std::vector<unsigned int> subFolders{}; // folder Keys
+	unsigned int  root = 0; // if root is 0 then there is not root (only in main folder)
 
 	AssetFolder() = default;
 
-	AssetFolder(const std::string& name, const std::vector<Asset>& assets, 
-		const std::vector<std::string>& subFolders, const std::string & root)
-		:name(name), assets(assets), subFolders(subFolders), root(root){}
+	AssetFolder(const std::string& name, const std::vector<Asset>& assets, const std::filesystem::path& path,
+		unsigned int root) : name(name), path(path), assets(assets), root(root) {}
 };
 
 class FolderViev {
 	std::vector<ClickBox*> folders{};
-	std::vector<std::string> fullFoldersNames{};
+	std::vector<unsigned int> foldersId{};
 	std::vector<ClickBox*> files{};
-	ClickBox* root = nullptr;
-	std::string rootName{};
+	ClickBox* rootCb = nullptr;
+	unsigned int rootId{};
 
 public:
 	FolderViev() = default;
 
-	void Create(UI *ui, const MT::Rect& bounds, const AssetFolder& folder);
+	void Create(UI* ui, const MT::Rect& bounds, const std::unordered_map<unsigned int, AssetFolder>& foldersMap,
+		unsigned int id);
 
 	void Clear(UI *ui);
 
-	std::string SubfolderUpdate();
+	unsigned int SubfolderUpdate();
 
-	std::string RootUpdate();
+	unsigned int RootUpdate();
 
 };
 
 class AssetTree {
 private:
-	std::unordered_map<std::string, AssetFolder> folders; // Key folder path not name since name can be duplicated
+	std::unordered_map<unsigned int, AssetFolder> folders; // Key is unique folder id (current id +1)
 	FolderViev currentViev;
 	UI* ui = nullptr;
 
@@ -79,25 +80,25 @@ public:
 	void Init(UI* ui) {
 		this->ui = ui;
 	}
-	void ReBuild(const std::string &path, const std::string& root = "");
+	void ReBuild(const std::string& path, unsigned int rootId = 0);
 
-	void CreateViev(const MT::Rect& bounds, const std::string& folderName) {
+	void CreateViev(const MT::Rect& bounds, unsigned int id) {
 		currentViev.Clear(ui);
-		auto fIter = folders.find(folderName);
+		auto fIter = folders.find(id);
 		if (fIter != folders.end()) {
-			currentViev.Create(ui, bounds, fIter->second);
+			currentViev.Create(ui, bounds, folders, fIter->first);
 		}
 	}
 
 	void FrameUpdate(const MT::Rect& bounds) {
-		std::string folderOut = currentViev.SubfolderUpdate();
-		if (!folderOut.empty()) {
+		unsigned int folderOut = currentViev.SubfolderUpdate();
+		if (folderOut != 0) {
 			CreateViev(bounds, folderOut);
 			return;
 		}
-		std::string rootName = currentViev.RootUpdate();
-		if (!rootName.empty()) {
-			CreateViev(bounds, rootName);
+		unsigned int rootId = currentViev.RootUpdate();
+		if (rootId != 0) {
+			CreateViev(bounds, rootId);
 			return;
 		}
 	}
