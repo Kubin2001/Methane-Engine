@@ -17,10 +17,9 @@ class EngineScene : public Scene {
 	public:
 	void Init() override{
 		mainInterface = std::make_unique<MainInterface>(ui);
-		tree.Init(ui);
-		
-		tree.ReBuild("Textures");
-		tree.CreateViev(mainInterface->GetDownRect(), 1);
+		tree.Init(ui, "Textures", mainInterface->GetDownRect());
+
+
 		Logger::Log("Engine Scene On");
 
 	}

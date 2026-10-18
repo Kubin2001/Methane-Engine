@@ -3,7 +3,9 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <print>
 #include <filesystem>
+#include <optional>
 
 #include "UI.h"
 
@@ -13,18 +15,24 @@ enum class AssetType {
 	Other
 };
 
+enum class TreeMoveDir{
+	Root,
+	SubFolder,
+	None,
+};
+
 
 class Asset {
 public:
 	AssetType type = AssetType::Texture;
-	std::string name{};
+	std::string name{}; // name + extension 
 
 	Asset(const std::filesystem::path& path) {
 		std::string extension = path.extension().string();
-		if (extension == "wav.") {
+		if (extension == ".wav") {
 			type = AssetType::Sound;
 		}
-		else if (extension == "png.") {
+		else if (extension == ".png") {
 			type = AssetType::Texture;
 		}
 		else {
@@ -37,36 +45,29 @@ public:
 
 class AssetFolder {
 public:
-	std::string name{};
-	std::filesystem::path path;
+	std::vector<std::string> folders;
 	std::vector<Asset> assets{};
-	std::vector<unsigned int> subFolders{}; // folder Keys
-	unsigned int  root = 0; // if root is 0 then there is not root (only in main folder)
+	std::optional<std::string> parent = std::nullopt;
 
 	AssetFolder() = default;
 
-	AssetFolder(const std::string& name, const std::vector<Asset>& assets, const std::filesystem::path& path,
-		unsigned int root) : name(name), path(path), assets(assets), root(root) {}
 };
 
 class FolderViev {
 	std::vector<ClickBox*> folders{};
-	std::vector<unsigned int> foldersId{};
 	std::vector<ClickBox*> files{};
 	ClickBox* rootCb = nullptr;
-	unsigned int rootId{};
 
 public:
 	FolderViev() = default;
 
-	void Create(UI* ui, const MT::Rect& bounds, const std::unordered_map<unsigned int, AssetFolder>& foldersMap,
-		unsigned int id);
+	void Create(UI* ui, const MT::Rect& bounds, const AssetFolder& currentFolder);
 
 	void Clear(UI *ui);
 
-	unsigned int SubfolderUpdate();
+	int SubfolderUpdate();
 
-	unsigned int RootUpdate();
+	bool RootUpdate();
 
 };
 
@@ -74,31 +75,51 @@ class AssetTree {
 private:
 	std::unordered_map<unsigned int, AssetFolder> folders; // Key is unique folder id (current id +1)
 	FolderViev currentViev;
+	AssetFolder currentFolder{};
 	UI* ui = nullptr;
+	std::filesystem::path currentPath{}; // Relative to main root folder
 
 public:
-	void Init(UI* ui) {
-		this->ui = ui;
-	}
-	void ReBuild(const std::string& path, unsigned int rootId = 0);
 
-	void CreateViev(const MT::Rect& bounds, unsigned int id) {
+	void Build();
+
+	void Init(UI* ui, const std::string& path, const MT::Rect &rect) {
+		this->ui = ui;
+		currentPath = path;
+		Build();
+		CreateViev(rect, 1,TreeMoveDir::None);
+
+	}
+
+
+	// Called when entering subfolder deletes unexisting folders and creates new that are nor included
+	// It does not do deep reursion when folder is loaded and still exist
+
+	void CreateViev(const MT::Rect& bounds, unsigned int id, TreeMoveDir moveDir) {
 		currentViev.Clear(ui);
-		auto fIter = folders.find(id);
-		if (fIter != folders.end()) {
-			currentViev.Create(ui, bounds, folders, fIter->first);
-		}
+		currentViev.Create(ui, bounds, currentFolder);
 	}
 
 	void FrameUpdate(const MT::Rect& bounds) {
-		unsigned int folderOut = currentViev.SubfolderUpdate();
-		if (folderOut != 0) {
-			CreateViev(bounds, folderOut);
+		int folderOut = currentViev.SubfolderUpdate();
+		if (folderOut != -1) {
+			std::filesystem::path newPath = currentPath;
+			newPath.append(currentFolder.folders[folderOut]);
+			if (std::filesystem::exists(newPath)) { // Otherwise it tries to remove unexisting elements
+				currentPath = currentPath.append(currentFolder.folders[folderOut]);
+			}
+			Build();
+			CreateViev(bounds, folderOut, TreeMoveDir::SubFolder);
 			return;
 		}
 		unsigned int rootId = currentViev.RootUpdate();
 		if (rootId != 0) {
-			CreateViev(bounds, rootId);
+			std::filesystem::path newPath = currentPath.parent_path();
+			if (std::filesystem::exists(newPath)) { // Otherwise it tries to remove unexisting elements
+				currentPath = currentPath.parent_path();
+			}
+			Build();
+			CreateViev(bounds, rootId, TreeMoveDir::Root);
 			return;
 		}
 	}

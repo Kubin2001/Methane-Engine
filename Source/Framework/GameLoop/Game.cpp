@@ -26,7 +26,6 @@ void Game::Start() {
 	renderer = new MT::Renderer();
 	renderer->Start(window);
 
-	window.SetFullScreen();
 	renderer->Resize(window.GetSize().x, window.GetSize().y);
 	Global::windowWidth = window.GetSize().x;
 	Global::windowHeight = window.GetSize().y;

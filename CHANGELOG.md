@@ -16,7 +16,13 @@ Define Clear Project Based on Methane Framework //DONE
 - Create Asset Viev in down panel //DONE
 - Define Root folder for folder object (std::optional) //DONE
 - Allow for graphical asset tree navigation //DONE
-- Improve the overall created system
+- Improve the overall created system //DONE
+- Tree Class needs to have current path as fs path //DONE
+- Refresh subfolder when entering //DONE
+- Show current path above folder viev
+- Add refresh icon that refreshes current folder (above folder viev below current path)
+- Move mainDirectory from textures to asset folder (need to create)
+- Assign unique textures to assets based on extensions
 
 0.03
 - Create Basic Entity
