@@ -9,16 +9,12 @@
 
 #include "UI.h"
 
+#include "Globals.h"
+
 enum class AssetType {
 	Texture,
 	Sound,
 	Other
-};
-
-enum class TreeMoveDir{
-	Root,
-	SubFolder,
-	None,
 };
 
 
@@ -78,6 +74,8 @@ private:
 	AssetFolder currentFolder{};
 	UI* ui = nullptr;
 	std::filesystem::path currentPath{}; // Relative to main root folder
+	Label* pathLabel = nullptr;
+	ClickBox* refreshCb = nullptr;
 
 public:
 
@@ -87,17 +85,28 @@ public:
 		this->ui = ui;
 		currentPath = path;
 		Build();
-		CreateViev(rect, 1,TreeMoveDir::None);
+		int x = rect.x + 5;
+		int y = rect.y + 5;
+		refreshCb = ui->LCreateClickBox(EditorGlobals::UILayerLow,"", x, y, 20, 20, TexMan::GetTex("RefreshIcon"));
+		refreshCb->SetHoverFilter(true, 255, 255, 255, 120);
 
+		pathLabel = ui->LCreateLabel(EditorGlobals::UILayerLow, "", x + 25, y, 20, 20, nullptr, ui->GetFont("arial12"));
+		pathLabel->SetColor(0, 0, 0, 0);
+		pathLabel->SetFontColor(150, 150, 150);
+		CreateViev(rect);
 	}
 
 
 	// Called when entering subfolder deletes unexisting folders and creates new that are nor included
 	// It does not do deep reursion when folder is loaded and still exist
 
-	void CreateViev(const MT::Rect& bounds, unsigned int id, TreeMoveDir moveDir) {
+	void CreateViev(const MT::Rect& bounds) {
 		currentViev.Clear(ui);
 		currentViev.Create(ui, bounds, currentFolder);
+		if (pathLabel) {
+			pathLabel->text = currentPath.string();
+		}
+
 	}
 
 	void FrameUpdate(const MT::Rect& bounds) {
@@ -109,7 +118,7 @@ public:
 				currentPath = currentPath.append(currentFolder.folders[folderOut]);
 			}
 			Build();
-			CreateViev(bounds, folderOut, TreeMoveDir::SubFolder);
+			CreateViev(bounds);
 			return;
 		}
 		unsigned int rootId = currentViev.RootUpdate();
@@ -119,8 +128,12 @@ public:
 				currentPath = currentPath.parent_path();
 			}
 			Build();
-			CreateViev(bounds, rootId, TreeMoveDir::Root);
+			CreateViev(bounds);
 			return;
+		}
+		if (refreshCb->ConsumeStatus()) {
+			Build();
+			CreateViev(bounds);
 		}
 	}
 };

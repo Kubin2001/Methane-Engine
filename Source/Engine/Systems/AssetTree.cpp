@@ -2,14 +2,14 @@
 
 
 
-#include "Globals.h"
+
 
 unsigned int folderID = 1;
 
 
 void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &currentFolder) {
-	int xStart = bounds.x + 10;
-	int yStart = bounds.y + 10;
+	int xStart = bounds.x + 20;
+	int yStart = bounds.y + 30;
 
 	int x = xStart;
 	int y = yStart;
@@ -17,9 +17,6 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 	int maxX = bounds.x + bounds.w - size;
 	int step = size + 50;
 	Font* font = ui->GetFont("arial12");
-
-
-
 
 
 	auto FillElem = [](UIElemBase* elem, const std::string &text, int size) {

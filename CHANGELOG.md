@@ -19,10 +19,10 @@ Define Clear Project Based on Methane Framework //DONE
 - Improve the overall created system //DONE
 - Tree Class needs to have current path as fs path //DONE
 - Refresh subfolder when entering //DONE
-- Show current path above folder viev
-- Add refresh icon that refreshes current folder (above folder viev below current path)
-- Move mainDirectory from textures to asset folder (need to create)
-- Assign unique textures to assets based on extensions
+- Show current path above folder viev //DONE
+- Add refresh icon that refreshes current folder (above folder viev below current path) //DONE
+- Move mainDirectory from textures to asset folder (need to create) //DONE
+- Assign unique textures to assets based on extensions (png,jpg,wav,txt,ogg)
 
 0.03
 - Create Basic Entity
