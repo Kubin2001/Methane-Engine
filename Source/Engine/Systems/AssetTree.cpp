@@ -1,6 +1,6 @@
 #include "AssetTree.h"
 
-
+#include "MainConfig.h"
 
 
 
@@ -37,8 +37,7 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 	// SubFolders
 	for (auto &subFolder : currentFolder.folders) {
-		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, 
-			TexMan::GetTex("FeFolderIcon"),font);
+		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, TexMan::GetTex("FeFolderIcon"),font);
 		FillElem(cb, subFolder.substr(0, 12), size);
 		folders.emplace_back(cb);
 		x += step;
@@ -50,8 +49,7 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 	// Assets
 	for (auto& asset : currentFolder.assets) {
-		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size,
-			TexMan::GetTex("pngTex"), font);
+		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, MainConfig::GetExtTexture(asset.ext), font);
 		FillElem(cb, std::filesystem::path(asset.name).filename().string().substr(0, 12), size);
 		files.emplace_back(cb);
 		x += step;

@@ -22,22 +22,19 @@ Define Clear Project Based on Methane Framework //DONE
 - Show current path above folder viev //DONE
 - Add refresh icon that refreshes current folder (above folder viev below current path) //DONE
 - Move mainDirectory from textures to asset folder (need to create) //DONE
-- Assign unique textures to assets based on extensions (png,jpg,wav,txt,ogg)
+- Assign unique textures to assets based on extensions (png,jpg,wav,txt,ogg) (json config)
 
 0.03
-- Create Basic Entity
+- Create Basic Engine Entity
+	- Rectangle (composite)
+	- Lua script
+	- Texture
+	- Color
 
 
 
-- Define basic Rect Adding
-	- Integrate lua (sol)
-	- Define Object (with color and size and texture)
-	- Define Hierarchy layout
-	- Gets Added by up panel
-	- Is shown in object list
-	- Size and color can be modified in properities
+
 - Define rendering layers (like the ones in ui since it is now impossible to define what needs to be rendered before someting else)
-- Define Basic Entity like in book 27
 - Game rendering uses the same renderer just as the layer below UI
 - Top 10 layers in UI reserved for editor
 - Initial target is for defining simple entity with lua script and that would be a whole game

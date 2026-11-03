@@ -8,6 +8,7 @@
 
 #include "MainInterface.h"
 #include "AssetTree.h"
+#include "MainConfig.h"
 
 class EngineScene : public Scene {
 	private:
@@ -16,7 +17,9 @@ class EngineScene : public Scene {
 
 	public:
 	void Init() override{
+
 		mainInterface = std::make_unique<MainInterface>(ui);
+		MainConfig::Load("Common");
 		std::filesystem::path assetsPath("Assets");
 		if(!std::filesystem::exists(assetsPath)){
 			std::filesystem::create_directory(assetsPath);

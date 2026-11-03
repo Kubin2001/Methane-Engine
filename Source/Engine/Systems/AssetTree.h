@@ -22,6 +22,7 @@ class Asset {
 public:
 	AssetType type = AssetType::Texture;
 	std::string name{}; // name + extension 
+	std::string ext{};
 
 	Asset(const std::filesystem::path& path) {
 		std::string extension = path.extension().string();
@@ -35,6 +36,7 @@ public:
 			type = AssetType::Other;
 		}
 		name = path.filename().string();
+		ext = extension;
 	}
 };
 
