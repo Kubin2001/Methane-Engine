@@ -14,6 +14,7 @@
 
 void Game::Start() {
 	MethaneVersion();
+	Logger::SetUp("", LogOutput::Console, LogOutput::Console);
 	MT::SetSeed(static_cast<unsigned int>(time(0)));
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
@@ -46,20 +47,19 @@ void Game::Start() {
 	ui->CrateTempFontFromTTF("Fonts/arial.ttf", 20, "arial20");
 	ui->CrateTempFontFromTTF("Fonts/arial.ttf", 40, "arial40");
 
-	renderer->FLatRenderCopySetUp();
-
-	Logger::SetUp("", LogOutput::Console, LogOutput::Console);
+	renderer->FlatDrawSetUp();
 
 	SceneMan::AddScene<EngineScene>("EngineScene");
 	SceneMan::SwitchScene<EngineScene>("EngineScene", renderer, ui.get());
 }
 
 void Game::LogicUpdate() {
-	Global::frameCounter++;
+	Global::logicCount++;
 	SceneMan::GetCurrentScene()->LogicUpdate();
 }
 
 void Game::FrameUpdate() {
+	Global::frameCount++;
 	Input();
 	SceneMan::GetCurrentScene()->FrameUpdate();
 	ui->FrameUpdate();
@@ -72,7 +72,6 @@ void Game::Input() {
 		ui->ManageInput(event);
 		Exit();
 	}
-	Global::inputDelay++;
 }
 
 void Game::Render() {
@@ -85,10 +84,10 @@ void Game::Render() {
 
 void Game::Exit() {
 	if (event.type == SDL_QUIT) {
-		Global::status = false; 
+		Global::running = false; 
 	}
 	else if (event.type == SDL_KEYUP && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-		Global::status = false;
+		Global::running = false;
 	}
 }
 

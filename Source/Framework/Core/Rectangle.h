@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL_rect.h>
 
+// Represents 2D position 
 struct Point {
 	int x = 0;
 	int y = 0;
@@ -12,9 +13,10 @@ struct Point {
 	}
 };
 
+// Represents 2D position 
 struct FPoint {
 	float x = 0.0f;
-	float y = 0.0;
+	float y = 0.0f;
 	FPoint();
 	FPoint(float x, float y);
 
@@ -28,6 +30,7 @@ namespace MT {
 	struct RectF;
 	struct CompositeRect;
 
+	// Basic rectangle where all coordinated are integers used for rendering
 	struct Rect {
 		int x = 0;
 		int y = 0;
@@ -60,6 +63,16 @@ namespace MT {
 		bool IsColliding(const RectF& rect) const noexcept;
 		bool IsColliding(const CompositeRect& rect) const noexcept;
 
+		inline bool IsColliding(const Point& p) const noexcept {
+			if (p.x >= x &&
+				p.x - w <= x &&
+				p.y >= y &&
+				p.y - h <= y) {
+				return true;
+			}
+			return false;
+		}
+
 		Rect& operator=(const SDL_Rect& rect) noexcept;
 		Rect& operator=(const RectF& rect) noexcept;
 		Rect& operator=(const CompositeRect& rect) noexcept;
@@ -70,6 +83,8 @@ namespace MT {
 		bool operator==(const CompositeRect& rect) const noexcept;
 	};
 
+
+	// Floating point rectangle where all coordinated are float 
 	struct RectF {
 		float x;
 		float y;
@@ -91,6 +106,16 @@ namespace MT {
 		bool IsColliding(const RectF& rect) const noexcept;
 		bool IsColliding(const CompositeRect& rect) const noexcept;
 
+		inline bool IsColliding(const Point& p) const noexcept {
+			if (p.x >= x &&
+				p.x - w <= x &&
+				p.y >= y &&
+				p.y - h <= y) {
+				return true;
+			}
+			return false;
+		}
+
 		RectF& operator=(const SDL_Rect& rect) noexcept;
 		RectF& operator=(const Rect& rect) noexcept;
 		RectF& operator=(const CompositeRect& rect) noexcept;
@@ -101,6 +126,8 @@ namespace MT {
 		bool operator==(const CompositeRect& rect) const noexcept;
 	};
 
+
+	// Rectangle where position is in floating point numbers use it when you need precise movement
 	struct CompositeRect {
 		float x;
 		float y;
@@ -121,6 +148,16 @@ namespace MT {
 		bool IsColliding(const Rect& rect) const noexcept;
 		bool IsColliding(const RectF& rect) const noexcept;
 		bool IsColliding(const CompositeRect& rect) const noexcept;
+
+		inline bool IsColliding(const Point& p) const noexcept {
+			if (p.x >= x &&
+				p.x - w <= x &&
+				p.y >= y &&
+				p.y - h <= y) {
+				return true;
+			}
+			return false;
+		}
 
 		CompositeRect& operator=(const SDL_Rect& rect) noexcept;
 		CompositeRect& operator=(const RectF& rect) noexcept;

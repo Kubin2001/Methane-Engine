@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Rectangle.h"
+
 namespace EditorGlobals {
 	// 20 upper layers are reserved for editor
 	constexpr int UILayerLowest = 80;
@@ -8,12 +10,6 @@ namespace EditorGlobals {
 	constexpr int UILayerHighest = 99;
 }
 
-
-inline size_t anonymousID = 0;
-
-inline std::string AnonUIName() {
-	return std::to_string(anonymousID++);
-}
 
 inline static MT::Rect RectFillBetweenY(int x, int w, const MT::Rect& up, const MT::Rect& down) {
 	return MT::Rect{

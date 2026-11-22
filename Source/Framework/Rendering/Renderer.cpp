@@ -43,6 +43,12 @@ MT::Texture* MT::GenEmptyTexture(int w, int h) {
 }
 
 MT::Texture* MT::LoadTexture(const char* path, TextureFilter filter) {
+    SDL_Surface* surf = IMG_Load(path);
+    if (!surf) {
+        Logger::Log(std::format("Failed to load image MT::LoadTexture: {}", IMG_GetError()), LogType::Error);
+        return nullptr;
+    }
+
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -65,26 +71,19 @@ MT::Texture* MT::LoadTexture(const char* path, TextureFilter filter) {
         break;
     }
 
-    SDL_Surface* surf = IMG_Load(path);
-
     MT::Texture* metTex = new MT::Texture;
     metTex->texture = texture;
-    if (!surf) {
-        std::println("Failed to load image MT::LoadTexture: {}", IMG_GetError());
-        return metTex;
-    }
-    else {
-        SDL_Surface* formatted = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0); // Aby się nie crashowało jak jest zły format
-        SDL_FreeSurface(surf);
-        surf = formatted;
-        SDL_Surface *flipped = FlipSurfaceVertical(surf);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, flipped->w, flipped->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, flipped->pixels); // RGBA dla png
-        metTex->w = flipped->w;
-        metTex->h = flipped->h;
-        metTex->writeTime = std::filesystem::last_write_time(path);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        SDL_FreeSurface(flipped);
-    }
+
+    SDL_Surface* formatted = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0); // To prevent crash when format is wrong
+    SDL_FreeSurface(surf);
+    surf = formatted;
+    SDL_Surface *flipped = FlipSurfaceVertical(surf);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, flipped->w, flipped->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, flipped->pixels); // RGBA for png
+    metTex->w = flipped->w;
+    metTex->h = flipped->h;
+    metTex->writeTime = std::filesystem::last_write_time(path);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    SDL_FreeSurface(flipped);
     SDL_FreeSurface(surf);
 
     return metTex;
@@ -117,7 +116,7 @@ MT::Texture* MT::LoadTextureFromSurface(SDL_Surface* surf, TextureFilter filter)
     MT::Texture* metTex = new MT::Texture;
     metTex->texture = texture;
     if (!surf) {
-        std::println("Empty surface in MT::LoadTextureFromSurface: {}", IMG_GetError());
+        Logger::Log(std::format("Empty surface in MT::LoadTextureFromSurface: {}", IMG_GetError()), LogType::Error);
         return metTex;
     }
 
@@ -217,9 +216,9 @@ bool MT::Renderer::Start(const MT::Window &mtWindow) {
         glBindVertexArray(0);
     };
 
-    DefineAtributes(VBO, rectVao, renderRectSize, { 4,2 });
+    DefineAtributes(VBO, rectVao, renderRectSize, { 4,1 });
 
-    DefineAtributes(VBO, rectExVao, renderRectExSize, { 4,3,2 });
+    DefineAtributes(VBO, rectExVao, renderRectExSize, { 4,1,1,2 });
 
     DefineAtributes(VBO, copyVao, renderCopySize, { 4,1 });
 
@@ -229,25 +228,25 @@ bool MT::Renderer::Start(const MT::Window &mtWindow) {
 
     DefineAtributes(VBO, copyCircleVao, renderCopyCircleSize, { 4,2 });
 
-    DefineAtributes(VBO, circleVao, renderCircleSize, { 4,3 });
+    DefineAtributes(VBO, circleVao, renderCircleSize, { 4,1,1 });
 
-    DefineAtributes(VBO, roundedVao, renderRoundedSize, { 4,2,1});
+    DefineAtributes(VBO, roundedVao, renderRoundedSize, { 4,1,1});
 
     DefineAtributes(VBO, roundedCopyVao, renderCopyRoundedSize, { 4,1,1 });
 
-    DefineAtributes(VBO, filteredVao, renderFilteredSize, { 4,4,2 });
+    DefineAtributes(VBO, filteredVao, renderFilteredSize, { 4,4,1 });
 
-    DefineAtributes(VBO, borderVao, renderBorderSize, { 4,2,1 });
+    DefineAtributes(VBO, borderVao, renderBorderSize, { 4,1,1 });
 
-    DefineAtributes(VBO, roundedBorderVao, renderRoundedBorderSize, { 4,2,1,1 });
+    DefineAtributes(VBO, roundedBorderVao, renderRoundedBorderSize, { 4,1,1,1 });
 
     DefineAtributes(VBO, maskedVao, renderMaskedSize, { 4,4,1 });
 
     DefineAtributes(VBO, doubleMaskedVao, renderDoubleMaskedSize, { 4,4,4,1 });
 
-    DefineAtributes(VBO, shapeVao, renderShapeSize, { 4,2 });
+    DefineAtributes(VBO, shapeVao, renderShapeSize, { 4,1 });
 
-    DefineAtributes(VBO, shadowVao, renderShapeSize, { 4,2,3 });
+    DefineAtributes(VBO, shadowVao, renderShadowSize, { 4,1,3 });
 
     DefineAtributes(VBO, uprVao, UPRSize, { 4,4,4,1,1});
 
@@ -393,7 +392,7 @@ void MT::Renderer::Resize(const unsigned int w, const unsigned int h) {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void MT::Renderer::FLatRenderCopySetUp() {
+void MT::Renderer::FlatDrawSetUp() {
     flatRenderVec.clear();
     int i = 0;
     TexMan::GetDefaultTex()->batchIndex = i++;

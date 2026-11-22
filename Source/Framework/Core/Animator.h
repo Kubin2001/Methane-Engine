@@ -23,6 +23,8 @@ enum class AnimType {
 };
 
 class Animation {
+	private:
+		bool finished = false;
 	public:
 		std::vector<MT::Rect> clips;
 		unsigned int firstFrame = 0;
@@ -35,6 +37,8 @@ class Animation {
 		void Reset();
 
 		void CloneFrame(const unsigned int index, const unsigned int count);
+
+		inline bool isFinished() const noexcept { return finished; }
 
 };
 

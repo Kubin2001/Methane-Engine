@@ -20,7 +20,7 @@ class MainInterface {
 	void SetUpPanels() {
 		auto SetUpElem = [](UIElemBase* elem) {
 			elem->SetColor(30, 30, 30, 255);
-			elem->SetRenderTextType(TextRenderType::CenteredX);
+			elem->SetTextAligment(TextAligment::CenteredX);
 			elem->textStartY = 5;
 			elem->SetBorder(1, 255, 255, 255, 120);
 		};
@@ -30,10 +30,10 @@ class MainInterface {
 		MT::Rect rightRect = RectFillBetweenY(Global::windowWidth - Global::windowWidth * 0.20, Global::windowWidth * 0.20, upRect, downRect);
 		gamePanel = MT::Rect{ leftRect.x + leftRect.w, upRect.y + upRect.h,
 			Global::windowWidth - (leftRect.w + rightRect.w), Global::windowWidth - (upRect.h + downRect.h) };
-		upPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, AnonUIName(), upRect.x, upRect.y, upRect.w, upRect.h);
-		downPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, AnonUIName(), downRect.x, downRect.y, downRect.w, downRect.h);
-		leftPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, AnonUIName(), leftRect.x, leftRect.y, leftRect.w, leftRect.h);
-		rightPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, AnonUIName(), rightRect.x, rightRect.y, rightRect.w, rightRect.h);
+		upPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, "", upRect.x, upRect.y, upRect.w, upRect.h);
+		downPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, "", downRect.x, downRect.y, downRect.w, downRect.h);
+		leftPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, "", leftRect.x, leftRect.y, leftRect.w, leftRect.h);
+		rightPanel = ui->LCreateLabel(EditorGlobals::UILayerLowest, "", rightRect.x, rightRect.y, rightRect.w, rightRect.h);
 		SetUpElem(upPanel);
 		SetUpElem(downPanel);
 		SetUpElem(leftPanel);
@@ -50,7 +50,7 @@ class MainInterface {
 
 		auto SetUpElem = [](ClickBox* cb) {
 			cb->SetColor(40, 40, 40, 255);
-			cb->SetRenderTextType(TextRenderType::CenteredY);
+			cb->SetTextAligment(TextAligment::CenteredY);
 			cb->textStartX = 5;
 			cb->SetHoverFilter(true, 255, 255, 255, 80);
 		};
@@ -88,14 +88,21 @@ class MainInterface {
 			addList.Toogle();
 		}
 
+	}
+
+	MT::Rect GetAssetsRect() { return downPanel->rect; }
+
+	MT::Rect GetSceneLayoutRect() { return leftPanel->rect; }
+
+	bool EntityAddSignal() {
 		if (addList.IsExpanded()) {
 			if (addList[2]->ConsumeStatus()) {
 				addList[2]->SetColor(RandInt(0, 255), RandInt(0, 255), RandInt(0, 255));
+				return true;
 			}
 		}
+		return false;
 	}
-
-	MT::Rect GetDownRect() { return downPanel->GetRectangle(); }
 
 	~MainInterface() {
 		

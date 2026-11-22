@@ -22,15 +22,16 @@ Define Clear Project Based on Methane Framework //DONE
 - Show current path above folder viev //DONE
 - Add refresh icon that refreshes current folder (above folder viev below current path) //DONE
 - Move mainDirectory from textures to asset folder (need to create) //DONE
-- Assign unique textures to assets based on extensions (png,jpg,wav,txt,ogg) (json config)
+- Assign unique textures to assets based on extensions (png,jpg,wav,txt,ogg) (json config) //DONE
 
 0.03
-- Create Basic Engine Entity
+- Create Basic Engine Entity // Done
 	- Rectangle (composite)
 	- Lua script
 	- Texture
 	- Color
-
+- Define scene layout class (left panel)
+- Define object viev class
 
 
 

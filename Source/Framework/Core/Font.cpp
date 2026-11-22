@@ -1,7 +1,6 @@
-#include "Font.h"
+ï»¿#include "Font.h"
 
 #include <fstream>
-#include <print>
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -9,6 +8,7 @@
 
 #include "TextureManager.h"
 #include "json.hpp"
+
 
 constexpr std::array<char32_t, 200> MakeCharset() {
 	std::array<char32_t, 200> cs{};
@@ -66,7 +66,7 @@ bool Font::LoadTextInfo(const std::string& jsonPath) {
 
 	}
 	else{
-		std::cout << "Error font json not loaded correctly!\n";
+		Logger::Log("Error font json not loaded correctly", LogType::Warning);
 		return false;
 	}
 	return true;
@@ -80,52 +80,42 @@ void Font::LoadTextCharset(const std::string& charset ,std::vector<MT::Rect> &re
 	}
 }
 
+void Font::RenderChars(MT::Renderer* ren, const std::string &text, const MT::Color& color, int interline, float scale) {
+	int temp = rect.x;
+
+	for (auto ch : text) {
+		unsigned int num = static_cast<int>(ch);
+		if (num >= sourceRectangles.size()) { continue; }
+		if (ch != '\n') {
+			rect.w = static_cast<int>(sourceRectangles[num].w * scale);
+			rect.h = static_cast<int>(sourceRectangles[num].h * scale);
+			ren->DrawFilteredSpriteUPR(rect, sourceRectangles[num], texture, color);
+			rect.x += static_cast<int>((sourceRectangles[num].w +1) * scale);
+		}
+		else {
+			rect.y += static_cast<int>(interline * scale);
+			rect.x = temp;
+		}
+	}
+}
 
 void Font::RenderRawText(MT::Renderer* renderer, const int x, const int y, const std::string& text, const int interline,
 	const MT::Color& color) {
-	rectangle.x = x;
-	rectangle.y = y;
-	rectangle.w = 0;
-	rectangle.h = 0;
-	int temp = rectangle.x;
-	for (int i = 0; i < text.length(); i++) {
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w);
-				rectangle.h = (int)(sourceRectangles[text[i]].h);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w) + 1;
-			}
-			else {
-				rectangle.y += (int)(interline);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = x;
+	rect.y = y;
+	rect.w = 0;
+	rect.h = 0;
+	RenderChars(renderer, text, color, interline, 1.0f);
 }
 
 // Basic text rendering with possition in left up corner of the button
 void Font::RenderText(MT::Renderer* renderer, const std::string &text, MT::Rect &btnRect, const MT::Color& color,
 	float scale, int interline, int textStartX, int textStartY) {
-	rectangle.x = btnRect.x + textStartX;
-	rectangle.y = btnRect.y + textStartY;
-	rectangle.w = 0;
-	rectangle.h = 0;
-	int temp = rectangle.x;
-	for (int i = 0; i < text.length(); i++){
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w * scale);
-				rectangle.h = (int)(sourceRectangles[text[i]].h * scale);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w * scale) + 1;
-			}
-			else{
-				rectangle.y += (int)(interline * scale);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = btnRect.x + textStartX;
+	rect.y = btnRect.y + textStartY;
+	rect.w = 0;
+	rect.h = 0;
+	RenderChars(renderer, text, color, interline, scale);
 }
 
 void Font::RenderTextCenter(MT::Renderer* renderer, const std::string& text, MT::Rect &btnRect, const MT::Color& color,
@@ -133,25 +123,9 @@ void Font::RenderTextCenter(MT::Renderer* renderer, const std::string& text, MT:
 	Point textSizes = CalculatePredefinedSize(text,interline,scale);
 
 	Point center = GetRectangleCenter(btnRect);
-	rectangle.x = center.x - (int)(textSizes.x * 0.5f) + textStartX;
-	rectangle.y = center.y - (int)(textSizes.y * 0.5f) + textStartY;
-	int temp = rectangle.x;
-
-
-	for (int i = 0; i < text.length(); i++){
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w * scale);
-				rectangle.h = (int)(sourceRectangles[text[i]].h * scale);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w * scale) + 1;
-			}
-			else{
-				rectangle.y += (int)(interline * scale);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = center.x - (int)(textSizes.x * 0.5f) + textStartX;
+	rect.y = center.y - (int)(textSizes.y * 0.5f) + textStartY;
+	RenderChars(renderer, text, color, interline, scale);
 }
 
 
@@ -159,25 +133,9 @@ void Font::RenderTextFromRight(MT::Renderer* renderer, const std::string& text, 
 	float scale, int interline, int textStartX, int textStartY) {
 	const Point textSizes = CalculatePredefinedSize(text, interline, scale);
 
-	rectangle.x = btnRect.x + btnRect.w - textSizes.x + textStartX;
-	rectangle.y = btnRect.y + textStartY;
-	const int temp = rectangle.x;
-
-
-	for (int i = 0; i < text.length(); ++i) {
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w * scale);
-				rectangle.h = (int)(sourceRectangles[text[i]].h * scale);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w * scale) + 1;
-			}
-			else {
-				rectangle.y += (int)(interline * scale);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = btnRect.x + btnRect.w - textSizes.x + textStartX;
+	rect.y = btnRect.y + textStartY;
+	RenderChars(renderer, text, color, interline, scale);
 }
 
 void Font::RenderTextCenterX(MT::Renderer* renderer, const std::string& text, MT::Rect& btnRect, const MT::Color& color,
@@ -185,25 +143,9 @@ void Font::RenderTextCenterX(MT::Renderer* renderer, const std::string& text, MT
 	Point textSizes = CalculatePredefinedSize(text, interline, scale);
 
 	Point center = GetRectangleCenter(btnRect);
-	rectangle.x = center.x - (int)(textSizes.x * 0.5f) + textStartX;
-	rectangle.y = btnRect.y + textStartY;
-	int temp = rectangle.x;
-
-
-	for (int i = 0; i < text.length(); i++) {
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w * scale);
-				rectangle.h = (int)(sourceRectangles[text[i]].h * scale);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w * scale) + 1;
-			}
-			else {
-				rectangle.y += (int)(interline * scale);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = center.x - (int)(textSizes.x * 0.5f) + textStartX;
+	rect.y = btnRect.y + textStartY;
+	RenderChars(renderer, text, color, interline, scale);
 }
 
 void Font::RenderTextCenterY(MT::Renderer* renderer, const std::string& text, MT::Rect& btnRect, const MT::Color& color,
@@ -211,25 +153,9 @@ void Font::RenderTextCenterY(MT::Renderer* renderer, const std::string& text, MT
 	Point textSizes = CalculatePredefinedSize(text, interline, scale);
 
 	Point center = GetRectangleCenter(btnRect);
-	rectangle.x = btnRect.x + textStartX;
-	rectangle.y = center.y - (int)(textSizes.y * 0.5f) + textStartY;
-	int temp = rectangle.x;
-
-
-	for (int i = 0; i < text.length(); i++) {
-		if (text[i] < sourceRectangles.size()) {
-			if (text[i] != '\n') {
-				rectangle.w = (int)(sourceRectangles[text[i]].w * scale);
-				rectangle.h = (int)(sourceRectangles[text[i]].h * scale);
-				renderer->RenderCopyFilteredUPR(rectangle, sourceRectangles[text[i]], texture, color);
-				rectangle.x += (int)(sourceRectangles[text[i]].w * scale) + 1;
-			}
-			else {
-				rectangle.y += (int)(interline * scale);
-				rectangle.x = temp;
-			}
-		}
-	}
+	rect.x = btnRect.x + textStartX;
+	rect.y = center.y - (int)(textSizes.y * 0.5f) + textStartY;
+	RenderChars(renderer, text, color, interline, scale);
 }
 
 Point Font::CalculatePredefinedSize(const std::string& fontText, const int interline, const float scale) {
@@ -437,13 +363,13 @@ void CrateFontFromTTF(const char* ttfPath, const int size, const std::string& na
 
 	// Creating string containing all signs
 	std::string strCharset = "";
-	strCharset.reserve(100); // Nie wiem ile w sumie bo jeszcze nie wiem ile znaków trzymaæ
+	strCharset.reserve(100); // Nie wiem ile w sumie bo jeszcze nie wiem ile znakÃ³w trzymaÄ‡
 
-	for (size_t i = 32; i < 127; i++) { // od 31 do 127 bo od 31 w dól znaki kontrolne i 127 do 159 tak samo
+	for (size_t i = 32; i < 127; i++) { // od 31 do 127 bo od 31 w dÃ³l znaki kontrolne i 127 do 159 tak samo
 		strCharset += static_cast<unsigned char>(globalCharset[i]);
 	}
 
-	for (size_t i = 160; i < 199; i++) { // dziwne znaki czy to wogóle zachowaæ nie wiem mo¿e opcja w funkcji?
+	for (size_t i = 160; i < 199; i++) { // dziwne znaki czy to wogÃ³le zachowaÄ‡ nie wiem moÅ¼e opcja w funkcji?
 		strCharset += static_cast<unsigned char>(globalCharset[i]);
 	}
 
@@ -528,10 +454,10 @@ void CrateFontFromTTF(const char* ttfPath, const int size, const std::string& na
 	if (file.is_open()) {
 		file << fontJSON.dump(4);
 		file.close();
-		std::println("Font {} JSON generated successfully", name);
+		Logger::Log(std::format("Font {} JSON generated successfully", name), LogType::Info);
 	}
 	else {
-		std::println("ERROR cannot generate font: {}", name);
+		Logger::Log(std::format("ERROR cannot generate font: {}", name), LogType::Info);
 	}
 
 	//Clean Up
@@ -545,6 +471,8 @@ void CrateFontFromTTF(const char* ttfPath, const int size, const std::string& na
 
 bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, const std::string& name, LocalTexMan* localTexMan) {
 	TTF_Init();
+	constexpr int fontSmallMaxSize = 13;
+
 
 	auto cleanUp = [](std::vector<SDL_Surface*>& surfaces, SDL_Surface* surf, TTF_Font *font) {
 		SDL_FreeSurface(surf);
@@ -556,26 +484,32 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 	};
 
 	if (!std::filesystem::exists(ttfPath)) {
-		std::println("Incorrect path in FontManager::CrateTempFontFromTTF for {} ", ttfPath);
+		Logger::Log(std::format("Incorrect path in FontManager::CrateTempFontFromTTF for {} ", ttfPath), LogType::Error);
 		return false;
 	}
 
 	TTF_Font* font = TTF_OpenFont(ttfPath, size);
-	TTF_SetFontHinting(font, TTF_HINTING_LIGHT);
+	if (size < fontSmallMaxSize) {
+		TTF_SetFontHinting(font, TTF_HINTING_NORMAL);
+	}
+	else {
+		TTF_SetFontHinting(font, TTF_HINTING_LIGHT);
+	}
+
 	if (font == nullptr) {
-		std::println("Cannot load font FontManager::CrateTempFontFromTTF for {} ", ttfPath);
+		Logger::Log(std::format("Cannot load font FontManager::CrateTempFontFromTTF for {} ", ttfPath),LogType::Error);
 		return false;
 	}
 
 	// Creating string containing all signs
 	std::string strCharset = "";
-	strCharset.reserve(100); // Nie wiem ile w sumie bo jeszcze nie wiem ile znaków trzymaæ
+	strCharset.reserve(100); // Nie wiem ile w sumie bo jeszcze nie wiem ile znakÃ³w trzymaÄ‡
 
-	for (size_t i = 32; i < 127; i++) { // od 31 do 127 bo od 31 w dól znaki kontrolne i 127 do 159 tak samo
+	for (size_t i = 32; i < 127; i++) { // od 31 do 127 bo od 31 w dÃ³l znaki kontrolne i 127 do 159 tak samo
 		strCharset += static_cast<unsigned char>(globalCharset[i]);
 	}
 
-	for (size_t i = 160; i < 199; i++) { // dziwne znaki czy to wogóle zachowaæ nie wiem mo¿e opcja w funkcji?
+	for (size_t i = 160; i < 199; i++) { // dziwne znaki czy to wogÃ³le zachowaÄ‡ nie wiem moÅ¼e opcja w funkcji?
 		strCharset += static_cast<unsigned char>(globalCharset[i]);
 	}
 
@@ -591,7 +525,14 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 	int maxH = 0;
 	for (auto& it : strCharset) {
 
-		SDL_Surface* surf = TTF_RenderGlyph32_Blended(font, it, { 255,255,255,255 });
+		SDL_Surface* surf = nullptr;
+		if (size < fontSmallMaxSize) {
+			surf = TTF_RenderGlyph32_Solid(font, it, { 255,255,255,255 });
+		}
+		else {
+			surf = TTF_RenderGlyph32_Blended(font, it, { 255,255,255,255 });
+		}
+
 		if (!surf) continue;
 
 		SDL_Surface* newSurf = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA32, 0);
@@ -599,7 +540,6 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 		if (!newSurf) continue;
 
 		SDL_SetSurfaceBlendMode(newSurf, SDL_BLENDMODE_NONE);
-		SDL_SetColorKey(newSurf, SDL_FALSE, 0);
 		surfaces.emplace_back(newSurf);
 		sourceRectangles.emplace_back(0, 0, newSurf->w, newSurf->h);
 		w += newSurf->w + 1;
@@ -609,7 +549,7 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 	}
 
 	// Creating texture atlas from glyphs
-	constexpr int maxTextureWidth = 2000; // 2000 is quite small it can in theory be at most 4096 openGL max texture size
+	constexpr int maxTextureWidth = 2048; // 2048 is quite small it can in theory be at most 4096 openGL max texture size
 
 	// Fix texture
 	int x = 0;
@@ -633,21 +573,30 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 		SDL_BlitSurface(surfaces[i], nullptr, atlas, &tempRect);
 	}
 	
-	MT::Texture *tex = MT::LoadTextureFromSurface(atlas,TextureFilter::Nearest);
+	MT::Texture* tex = nullptr;
+	if (size < fontSmallMaxSize) {
+		tex = MT::LoadTextureFromSurface(atlas, TextureFilter::Linear);
+	}
+	else {
+		tex = MT::LoadTextureFromSurface(atlas, TextureFilter::Linear);
+	}
 	
 	if (localTexMan == nullptr) {
 		if (!TexMan::AddTexture(tex, name)) {
 			cleanUp(surfaces, atlas, font);
-			std::println("Texture name alrady taken use other name FontManager::CrateTempFontFromTTF for {} ", name);
+			Logger::Log(std::format("Texture name alrady taken use other name FontManager::CrateTempFontFromTTF for {} "
+				, name), LogType::Error);
 			return false;
 		}
 	}
 	else {
 		if (!localTexMan->AddTexture(tex, name)) {
 			cleanUp(surfaces, atlas, font);
-			std::println("Texture name alrady taken use other name FontManager::CrateTempFontFromTTF for {} ", name);
+			Logger::Log(std::format("Texture name alrady taken use other name FontManager::CrateTempFontFromTTF for {} "
+				, name), LogType::Error);
+			return false;
 		}
-		return false;
+
 	}
 
 
@@ -655,7 +604,8 @@ bool FontManager::CrateTempFontFromTTF(const char* ttfPath, const int size, cons
 		for (auto& it : fonts) {
 			if (it->GetName() == name) {
 				cleanUp(surfaces, atlas, font);
-				std::println("Font with the same name already exist  FontManager::CrateTempFontFromTTF for {} ", name);
+				Logger::Log(std::format("Font with the same name already exist  FontManager::CrateTempFontFromTTF for {} "
+					, name), LogType::Error);
 				return false;
 			}
 		}

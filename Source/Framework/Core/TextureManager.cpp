@@ -2,11 +2,12 @@
 
 #include <iostream>
 #include <SDL_image.h>
-#include <SDL.h>
 #include <filesystem>
 #include <vector>
 #include <string>
 #include <format>
+
+#include "Logger.h"
 
 void TexMan::CreateDefaultTexture() {
 	SDL_Surface* surface = SDL_CreateRGBSurface(
@@ -61,13 +62,13 @@ bool TexMan::IsWorking() {
 }
 
 void TexMan::Print() {
-	std::cout << "------------------------\n";
-	std::cout << "Loaded Textures Names: \n";
-	std::cout << "------------------------\n";
-	for (auto it = Textures.begin(); it != Textures.end(); ++it) {
-		std::cout << it->first<<"\n";
+	Logger::Log("------------------------");
+	Logger::Log("Loaded Textures: ");
+	Logger::Log("------------------------");
+	for (auto& [key, tex] : Textures) {
+		Logger::Log(std::format("{}", key));
 	}
-	std::cout << "------------------------\n";
+	Logger::Log("------------------------");
 }
 
 bool TexMan::IsFormatSupported(const std::string& format) {
@@ -86,12 +87,18 @@ bool TexMan::AddTexture(MT::Texture* tex, const std::string& name) {
 }
 
 void TexMan::LoadSingle(const char* filePath, const std::string& name) {
-	if (Textures.find(name) != Textures.end()) {
-		std::cout << "Texture: " << name << " is already loaded\n";
+	auto [iter, succes] = Textures.try_emplace(name);
+	if (!succes) {
+		Logger::Log(std::format("Texture: {} is already loaded", name), LogType::Warning);
 		return;
 	}
-	MT::Texture* tex = MT::LoadTexture(filePath);
-	Textures[name] = std::unique_ptr<MT::Texture>(tex);
+	MT::Texture* texture = MT::LoadTexture(filePath);
+	if (texture) {
+		iter->second.reset(texture);
+	}
+	else {
+		Textures.erase(iter);
+	}
 }
 
 
@@ -148,11 +155,11 @@ bool TexMan::DeleteTexture(const std::string& name) {
 	return false;
 }
 
-void TexMan::RefreshTexturesInFolder(const std::string& directory, bool removeInvalid, std::unordered_set<std::string>&namesCollector) {
+void TexMan::ReloadTexturesInFolder(const std::string& directory, bool removeInvalid, std::unordered_set<std::string>&namesCollector) {
 	namespace fs = std::filesystem;
 	for (fs::directory_entry entry : fs::directory_iterator(directory)) {
 		if (entry.is_directory()) {
-			RefreshTexturesInFolder(entry.path().string(),removeInvalid,namesCollector);
+			ReloadTexturesInFolder(entry.path().string(),removeInvalid,namesCollector);
 		}
 		else {
 			std::string stem = entry.path().stem().string();
@@ -163,9 +170,14 @@ void TexMan::RefreshTexturesInFolder(const std::string& directory, bool removeIn
 			}
 			else{ // Check if it needs to be refreshed
 				MT::Texture* tex = textureIter->second.get();
-				if (tex->writeTime != std::filesystem::last_write_time(path)) { //Refresh texture
-					tex = MT::LoadTexture(path.c_str());
-					textureIter->second = std::unique_ptr<MT::Texture>(tex);
+				std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(path);
+				if (tex->writeTime != writeTime) { //Refresh texture
+					tex->writeTime = writeTime;
+					MT::Texture* newTex = MT::LoadTexture(path.c_str());
+					std::swap(tex->texture, newTex->texture);
+					std::swap(tex->w, newTex->w);
+					std::swap(tex->h, newTex->h);
+					delete newTex;
 				}
 			}
 			if (removeInvalid) { // Add to later check if it is missing in textures
@@ -175,10 +187,10 @@ void TexMan::RefreshTexturesInFolder(const std::string& directory, bool removeIn
 	}
 }
 
-void TexMan::RefreshTextures(const std::string& directory, bool removeInvalid) {
+void TexMan::ReloadTextures(const std::string& directory, bool removeInvalid) {
 	namespace fs  = std::filesystem;
 	if (!fs::exists(directory)) {
-		std::println("TexMan::RefreshTextures incorrect start directory");
+		Logger::Log("TexMan::ReloadTextures incorrect start directory", LogType::Error);
 		return;
 	}
 	std::unordered_set<std::string> namesCollector;
@@ -186,7 +198,7 @@ void TexMan::RefreshTextures(const std::string& directory, bool removeInvalid) {
 		namesCollector.reserve(Textures.size());
 	}
 
-	RefreshTexturesInFolder(directory,removeInvalid,namesCollector);
+	ReloadTexturesInFolder(directory,removeInvalid,namesCollector);
 
 	if (removeInvalid) {
 		std::vector<std::string> texturesToErase;
@@ -205,7 +217,7 @@ Point TexMan::GetTextureSize(const std::string& name) {
 	Point p(-1, -1);
 	auto it = Textures.find(name);
 	if (it == Textures.end()) {
-		std::println("Texture not found: {}", name);
+		Logger::Log(std::format("Texture not found: {}", name),LogType::Warning);
 		return p;
 	}
 	p.x = it->second->w;
@@ -332,7 +344,7 @@ MT::Atlas TexMan::CreateAtlas(const std::string& atlasTexName, unsigned int tile
 			texturesToMap.emplace_back(texIter->second.get());
 		}
 		else {
-			errors.emplace_back(std::format(" Texture with name: {} is not loaded", texIter->first));
+			errors.emplace_back(std::format(" Texture with name: {} is not loaded", name));
 			return { errors };
 		}
 	}
@@ -639,7 +651,7 @@ Point LocalTexMan::GetTextureSize(const std::string& name) {
 	Point p(-1, -1);
 	auto it = Textures.find(name);
 	if (it == Textures.end()) {
-		std::println("Texture not found: {}", name);
+		Logger::Log(std::format("Texture not found: {}", name), LogType::Warning);
 		return p;
 	}
 	p.x = it->second->w;

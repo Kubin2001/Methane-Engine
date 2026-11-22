@@ -1,7 +1,6 @@
 #include "Files.h"
 
 #include <fstream>
-#include <print>
 #include <filesystem>
 
 std::string BreakLines(const std::string& input, std::size_t every) {
@@ -76,7 +75,7 @@ void FileExplorer::CreateElement(int x, int y, const std::string& dirPath, const
 	cb = folderElementsNames.back();
 	cb->SetColor(255, 255, 255, 0);
 	cb->SetHoverFilter(true, 255, 255, 255, 70);
-	cb->SetRenderTextType(TextRenderType::CenteredY);
+	cb->SetTextAligment(TextAligment::CenteredY);
 }
 
 static std::unordered_map<std::string, MT::Texture*> LoadExtensionTextures(LocalTexMan *texMan) {
@@ -165,23 +164,23 @@ void FileExplorer::Input() {
 			if (event.wheel.y > 0 && absoluteY < 50) { // up
 				absoluteY += scroolSpeed;
 				for (auto &it:folderElements) {
-					it->GetRectangle().y+= scroolSpeed;
+					it->rect.y+= scroolSpeed;
 				}
 				for (auto& it : folderElementsNames) {
-					it->GetRectangle().y += scroolSpeed;
+					it->rect.y += scroolSpeed;
 				}
-				selectedBox->GetRectangle().y += scroolSpeed;
+				selectedBox->rect.y += scroolSpeed;
 			}
-			else if (event.wheel.y < 0 && std::abs(absoluteY) < (folderElements.back()->GetRectangle().y +
-				folderElements.back()->GetRectangle().h)) { //down
+			else if (event.wheel.y < 0 && std::abs(absoluteY) < (folderElements.back()->rect.y +
+				folderElements.back()->rect.h)) { //down
 				absoluteY -= scroolSpeed;
 				for (auto& it : folderElements) {
-					it->GetRectangle().y-= scroolSpeed;
+					it->rect.y-= scroolSpeed;
 				}
 				for (auto& it : folderElementsNames) {
-					it->GetRectangle().y -= scroolSpeed;
+					it->rect.y -= scroolSpeed;
 				}
-				selectedBox->GetRectangle().y -= scroolSpeed;
+				selectedBox->rect.y -= scroolSpeed;
 			}
 		}
 		if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE) {
@@ -216,7 +215,7 @@ void FileExplorer::Input() {
 			if (selectedElement == nullptr) {
 				selectedElement = folderElements[i];
 				selectedBox->Show();
-				selectedBox->GetRectangle().y = selectedElement->GetRectangle().y;
+				selectedBox->rect.y = selectedElement->rect.y;
 				retPath = temp;
 				break;
 			}
@@ -235,7 +234,7 @@ void FileExplorer::Input() {
 			}
 			if (selectedElement != nullptr) {
 				selectedElement = folderElements[i];
-				selectedBox->GetRectangle().y = selectedElement->GetRectangle().y;
+				selectedBox->rect.y = selectedElement->rect.y;
 				selectedBox->Show();
 				retPath = temp;
 			}
@@ -245,7 +244,7 @@ void FileExplorer::Input() {
 		if (cb->IsHovered() && !retPath.empty()) {
 			Point mouse = GetMousePos();
 			std::string breakPath = BreakLines(retPath,35);
-			ui->RenderRawText(ui->GetFont("arial12px"), mouse.x, mouse.y, breakPath, 15, { 200, 200, 200 });
+			ui->DrawRawText(ui->GetFont("arial12px"), mouse.x, mouse.y, breakPath, 15, { 200, 200, 200 });
 		}
 	}
 }

@@ -1,8 +1,9 @@
 #include "ShaderLoader.h"
 
-#include <print>
 #include <fstream>
 #include <sstream>
+
+#include "Logger.h"
 
 std::string LoadShaderFile(const char* fileName) {
     std::ifstream file;
@@ -13,10 +14,10 @@ std::string LoadShaderFile(const char* fileName) {
     if (file.is_open()) {
         buf << file.rdbuf();
         ret = buf.str();
-        std::println("Shader : {} loaded ", fileName);
+        Logger::Log(std::format("Shader : {} loaded ", fileName), LogType::Info);
     }
     else{
-        std::println("Error file: {} not openned ", fileName);
+        Logger::Log(std::format("Error cannot open file: {}", fileName), LogType::Error);
     }
     file.close();
 
@@ -38,11 +39,11 @@ void ShaderLoader::LoadShader(const std::string& name, const std::string& path, 
 
     if (!success) {
         glGetShaderInfoLog(shaderID, 512, nullptr, infoLog);
-        std::println("Error with shader compilation NAME: {} ERROR:{}", name,infoLog);
+        Logger::Log(std::format("Error with shader compilation NAME: {} ERROR:{}", name, infoLog), LogType::Error);
     }
     else{
         shaders[name] = shaderID;
-        std::println("Shader Compilation succesfull: {}",name);
+        Logger::Log(std::format("Shader Compilation succesfull: {}", name), LogType::Info);
     }
 }
 
@@ -61,11 +62,11 @@ void ShaderLoader::LoadShaderStr(const std::string& name, const std::string& sha
 
     if (!success) {
         glGetShaderInfoLog(shaderID, 512, nullptr, infoLog);
-        std::println("Error with shader compilation NAME: {} ERROR:{}", name, infoLog);
+        Logger::Log(std::format("Error with shader compilation NAME: {} ERROR:{}", name, infoLog), LogType::Error);
     }
     else {
         shaders[name] = shaderID;
-        std::println("Shader Compilation succesfull: {}", name);
+        Logger::Log(std::format("Shader Compilation succesfull: {}", name), LogType::Info);
     }
 }
 
@@ -82,7 +83,7 @@ unsigned int& ShaderLoader::GetShader(const std::string& name) {
 void ShaderLoader::CreateProgram(std::vector<std::string> &names, const std::string& programName, bool deleteShader) {
     for (auto& it : names) {
         if (shaders.find(it) == shaders.end()) {
-            std::println("Shader {} not found program creation stopped", it);
+            Logger::Log(std::format("Shader {} not found program creation stopped",it), LogType::Error);
             return;
         }
     }
@@ -101,10 +102,10 @@ void ShaderLoader::CreateProgram(std::vector<std::string> &names, const std::str
 
     if (!success) {
         glGetProgramInfoLog(shaderPrograms[programName], 512, nullptr, infoLog);
-        std::println ("Cannot create shader program: {} ERROR: {}",programName,infoLog);
+        Logger::Log(std::format("Cannot create shader program: {} ERROR: {}", programName, infoLog), LogType::Error);
     }
     else{
-        std::println("Linking succesfull");
+        Logger::Log("Linking succesfull",LogType::Info);
     }
 
     //Usuwanie shaderów bo z racji po³¹czenia w program s¹ niepotrzebne
@@ -131,10 +132,10 @@ unsigned int ShaderLoader::LoadShaderStrRaw(const char* shaderText, GLenum shade
 
     if (!success) {
         glGetShaderInfoLog(shaderID, 512, nullptr, infoLog);
-        std::println("Error with shader compilation  ERROR: {} in \n {}", infoLog, shaderText);
+        Logger::Log(std::format("Error with shader compilation  ERROR: {} in \n {}", infoLog, shaderText), LogType::Error);
         return 0;
     }
-    std::println("Raw Shader Compilation succesfull");
+    Logger::Log("Raw Shader Compilation succesfull", LogType::Info);
     return shaderID;
 }
 
@@ -158,10 +159,11 @@ bool ShaderLoader::CreateProgramStr(const std::string name, const char* vertexSt
 
     if (!success) {
         glGetProgramInfoLog(shaderPrograms[name], 512, nullptr, infoLog);
-        std::println ("Cannot create shader program: {} ERROR: {}",name,infoLog);
+        Logger::Log(std::format("Cannot create shader program: {} ERROR: {}", name, infoLog), LogType::Error);
+
     }
     else{
-        std::println("Linking succesfull");
+        Logger::Log("Linking succesfull", LogType::Info);
         created = true;
     }
 
@@ -201,7 +203,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColorPacked;
+        layout(location = 1) in float aColorPacked;
 
         out vec4 ourColor;
         out float vAlpha;
@@ -210,13 +212,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2 uVievPort;
         };
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+    
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         vec2 indexPos[6] = vec2[](
@@ -234,16 +241,13 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
 
-            // Rozpakowanie koloru (bez zmian)
-            vec2 vRG = unpackHalfColor(aColorPacked.x);
-            vec2 vBA = unpackHalfColor(aColorPacked.y);
-            ourColor = vec4(vRG, vBA);
+            ourColor = unpackColor(aColorPacked);
         }
         )glsl";
 
@@ -266,24 +270,28 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec3 aColorRot;
-        layout(location = 2) in vec2 aRotCenter;
+        layout(location = 1) in float aPackedColor;
+        layout(location = 2) in float aRot;
+        layout(location = 3) in vec2 aCenter;
 
-        out vec4 ourColor;
-        out float vAlpha;
+        out vec4 oColor;
 
         layout(std140) uniform ViewportBlock {
             vec2 uVievPort;
         };
 
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
 
-        vec2 unpackHalfColor(float packedColor){
-            int col = int(round(packedColor)); 
-            float r  = float((col >> 8) & 255); 
-            float g = float(col & 255); 
-            r /= 255.0;
-            g /= 255.0;
-            return vec2(r, g);
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         vec2 indexPos[6] = vec2[](
@@ -300,24 +308,24 @@ void ShaderLoader::LoadSavedShaders() {
 
             vec2 absolutePos = aRect.xy + (normalizedOffset * aRect.zw);
 
-            vec2 posRelToPivot = absolutePos - aRotCenter;
+            vec2 posRelToPivot = absolutePos - aCenter;
 
-            float rad = radians(aColorRot.z);
+            float rad = radians(aRot);
             float cosA = cos(rad);
             float sinA = sin(rad);
-    
+
             vec2 rotatedPos;
             rotatedPos.x = posRelToPivot.x * cosA - posRelToPivot.y * sinA;
             rotatedPos.y = posRelToPivot.x * sinA + posRelToPivot.y * cosA;
 
-            vec2 worldPos = aRotCenter + rotatedPos;
+            vec2 worldPos = aCenter + rotatedPos;
 
             float ndcX = (worldPos.x / uVievPort.x) * 2.0 - 1.0;
             float ndcY = 1.0 - (worldPos.y / uVievPort.y) * 2.0;
 
             gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);
 
-            ourColor = vec4(unpackHalfColor(aColorRot.x), unpackHalfColor(aColorRot.y));
+            oColor = unpackColor(aPackedColor);
         }
         )glsl";
 
@@ -326,10 +334,10 @@ void ShaderLoader::LoadSavedShaders() {
 
         out vec4 FragColor;
 
-        in vec4 ourColor;
+        in vec4 oColor;
 
         void main(){
-	        FragColor = vec4(ourColor.xyz,1.0 * ourColor.w);
+            FragColor = vec4(oColor.rgb,1.0 * oColor.a);
         }
         )glsl";
 
@@ -447,7 +455,7 @@ void ShaderLoader::LoadSavedShaders() {
 
             outTexCoord = uvs[gl_VertexID % 6];
 
-            outAlpha = aAlpha;
+            outAlpha = aAlpha / 255.0;
         }
         )glsl";
 
@@ -525,7 +533,7 @@ void ShaderLoader::LoadSavedShaders() {
             float v = v0 + texUvs.y * aSourceRect.w;        
 
             outTexCoord = vec2(u, v);
-            outAlpha = aAlpha;
+            outAlpha = aAlpha / 255.0;
         }
         )glsl";
 
@@ -613,7 +621,7 @@ void ShaderLoader::LoadSavedShaders() {
             float v = aSourceRect.y + (texUvs.y * aSourceRect.w);  
 
             outTexCoord = vec2(u, v);
-            outAlpha = aAlphaRot.x;
+            outAlpha = aAlphaRot.x / 255.0;
         }
         )glsl";
 
@@ -682,6 +690,7 @@ void ShaderLoader::LoadSavedShaders() {
             gl_Position = vec4(finalPos, 0.0, 1.0);
             oTexCord = uvs[gl_VertexID % 6];
             oRadiusAlpha = aRadiusAlpha;
+            oRadiusAlpha.y /= 255.0 ;
         }
         )glsl";
 
@@ -712,7 +721,8 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec3 aRadiusColor;
+        layout(location = 1) in float aRadius;
+        layout(location = 2) in float aPackedColor;
 
         out vec4 oColor;
         out vec2 oUV;
@@ -732,13 +742,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2(1.0, -1.0)  // Right Down
         );
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         const vec2 uvs[6] = vec2[6](
@@ -756,14 +771,14 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
-            oColor = vec4(unpackHalfColor(aRadiusColor.y),unpackHalfColor(aRadiusColor.z));
+            oColor = unpackColor(aPackedColor);
             oUV = uvs[gl_VertexID % 6];
-            oRadius = aRadiusColor.x;
+            oRadius = aRadius;
         }
         )glsl";
 
@@ -793,7 +808,7 @@ void ShaderLoader::LoadSavedShaders() {
         #version 330 core
         layout(location = 0) in vec4 aRect;
         layout(location = 1) in vec4 aSourceRect;
-        layout(location = 2) in vec2 aColor;
+        layout(location = 2) in float aColorPacked;
 
 
         out vec2 oTexCord;
@@ -822,13 +837,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2(1.0, -1.0)  // Right Down
         );
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         void main() {
@@ -837,7 +857,7 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
@@ -846,13 +866,13 @@ void ShaderLoader::LoadSavedShaders() {
             vec2 texUvs = uvs[gl_VertexID % 6];
 
             float u = aSourceRect.x + texUvs.x * aSourceRect.z;
-    
+
             float v0 = 1.0 - aSourceRect.y - aSourceRect.w; 
             float v = v0 + texUvs.y * aSourceRect.w;        
 
             oTexCord = vec2(u, v);
 
-            oFilter = vec4(unpackHalfColor(aColor.x),unpackHalfColor(aColor.y));
+            oFilter = unpackColor(aColorPacked);
         }
         )glsl";
 
@@ -880,7 +900,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColorPacked;
+        layout(location = 1) in float aColorPacked;
         layout(location = 2) in float aRounding;
 
         out vec4 oColor;
@@ -891,16 +911,6 @@ void ShaderLoader::LoadSavedShaders() {
         layout(std140) uniform ViewportBlock {
             vec2 uVievPort;
         };
-
-
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
-        }
 
         vec2 indexPos[6] = vec2[](
             vec2(0.0, -1.0), // Left Down
@@ -920,21 +930,34 @@ void ShaderLoader::LoadSavedShaders() {
             vec2(1.0, 1.0)  
         );
 
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
+        }
+
         void main() {
             float ndcX = (aRect.x / uVievPort.x) * 2.0 - 1.0;
             float ndcY = 1.0 - (aRect.y / uVievPort.y) * 2.0;
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
 
-            vec2 vRG = unpackHalfColor(aColorPacked.x);
-            vec2 vBA = unpackHalfColor(aColorPacked.y);
-            oColor = vec4(vRG, vBA);
+            // Unpacks 32 float into vec4 (reversed)
+            oColor = unpackColor(aColorPacked); 
             oUV = uvs[gl_VertexID % 6];
             oWH = aRect.zw;
             oRounding = aRounding;
@@ -1024,7 +1047,7 @@ void ShaderLoader::LoadSavedShaders() {
 
             oUV = uvs[gl_VertexID % 6];
             oWH = aRect.zw;
-            oAlpha = aAlpha;
+            oAlpha = aAlpha / 255.0;
             oRounding = aRounding;
         }
         )glsl";
@@ -1072,7 +1095,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColorPacked;
+        layout(location = 1) in float aColorPacked;
         layout(location = 2) in float aWidth;
 
         out vec4 oColor;
@@ -1085,13 +1108,18 @@ void ShaderLoader::LoadSavedShaders() {
         };
 
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         vec2 indexPos[6] = vec2[](
@@ -1118,13 +1146,13 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
 
-            oColor = vec4(unpackHalfColor(aColorPacked.x), unpackHalfColor(aColorPacked.y));
+            oColor = unpackColor(aColorPacked);
 
             oUV.xy = uvs[gl_VertexID % 6];
             oRectSize = aRect.zw;
@@ -1168,7 +1196,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColorPacked;
+        layout(location = 1) in float aColorPacked;
         layout(location = 2) in float aWidth;
         layout(location = 3) in float aRoundingSize;
 
@@ -1182,13 +1210,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2 uVievPort;
         };
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         vec2 indexPos[6] = vec2[](
@@ -1215,13 +1248,13 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
 
-            oColor = vec4(unpackHalfColor(aColorPacked.x), unpackHalfColor(aColorPacked.y));
+            oColor = unpackColor(aColorPacked);
 
             oUV.xy = uvs[gl_VertexID % 6];
             oRectSize = aRect.zw;
@@ -1322,7 +1355,7 @@ void ShaderLoader::LoadSavedShaders() {
             float v = v0 + texUvs.y * aSourceRect.w;        
 
             oTexCoord = vec4(vec2(u, v),uvs[gl_VertexID % 6]);
-            oAlpha = aAlpha;
+            oAlpha = aAlpha / 255.0;
         }
         )glsl";
 
@@ -1410,7 +1443,7 @@ void ShaderLoader::LoadSavedShaders() {
             float vTwo = v0Two + texUvs.y * aSourceRectTwo.w;  
 
             oTexCoord = vec4(vec2(u, v),vec2(uTwo, vTwo));
-            oAlpha = aAlpha;
+            oAlpha = aAlpha / 255.0;
         }
         )glsl";
 
@@ -1442,7 +1475,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColor;
+        layout(location = 1) in float aColorPacked;
 
         out vec4 oFilter;
         out vec2 oUV;
@@ -1470,13 +1503,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2(1.0, -1.0)  // Right Down
         );
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         void main() {
@@ -1485,15 +1523,13 @@ void ShaderLoader::LoadSavedShaders() {
             float ndcW = (aRect.z / uVievPort.x) * 2.0;
             float ndcH = (aRect.w / uVievPort.y) * 2.0;
 
-	        vec2 localPos = indexPos[gl_VertexID % 6];
+            vec2 localPos = indexPos[gl_VertexID % 6];
 
             vec2 finalPos = vec2(ndcX + localPos.x * ndcW, ndcY + localPos.y * ndcH);
 
             gl_Position = vec4(finalPos, 0.0, 1.0);
 
-            vec2 texUvs = uvs[gl_VertexID % 6];
-
-            oFilter = vec4(unpackHalfColor(aColor.x),unpackHalfColor(aColor.y));
+            oFilter = unpackColor(aColorPacked);
             oUV = uvs[gl_VertexID % 6];
         }
         )glsl";
@@ -1522,7 +1558,7 @@ void ShaderLoader::LoadSavedShaders() {
         constexpr const char* vertexStr = R"glsl(
         #version 330 core
         layout(location = 0) in vec4 aRect;
-        layout(location = 1) in vec2 aColor;
+        layout(location = 1) in float aColorPacked;
         layout(location = 2) in vec3 aLightPos;
 
         out vec4 oFilter;
@@ -1551,13 +1587,18 @@ void ShaderLoader::LoadSavedShaders() {
             vec2(1.0, -1.0)  // Right Down
         );
 
-        vec2 unpackHalfColor(float packedColor){
-	        int col = int(packedColor);
-	        float r  = float((col >> 8) & 255); // in RG it would be R
-	        float g = float(col & 255); // This would be B
-	        r /=255.0;
-	        g /=255.0;
-	        return vec2(r, g);
+        vec4 unpackColor(float packedColor){
+            uint col = floatBitsToUint(packedColor);
+
+            float r = float((col >> 24) & 255u); 
+            float g = float((col >> 16) & 255u); 
+            float b = float((col >> 8)  & 255u);  
+            float a = float(col & 255u);
+            r /=255.0;
+            g /=255.0;
+            b /=255.0;
+            a /=255.0;
+            return vec4(r, g, b ,a);
         }
 
         void main() {
@@ -1588,13 +1629,13 @@ void ShaderLoader::LoadSavedShaders() {
 
             float ndcX = (worldPos.x / uVievPort.x) * 2.0 - 1.0;
             float ndcY = 1.0 - (worldPos.y / uVievPort.y) * 2.0;
-   
+
 
             gl_Position = vec4(ndcX, ndcY, 0.0, 1.0);
 
             vec2 texUvs = uvs[gl_VertexID % 6];
 
-            oFilter = vec4(unpackHalfColor(aColor.x),unpackHalfColor(aColor.y));
+            oFilter = unpackColor(aColorPacked);
             oUV = uvs[gl_VertexID % 6];
         }
         )glsl";
@@ -1726,26 +1767,26 @@ void ShaderLoader::LoadSavedShaders() {
                 case 2:{ // Render Copy
                     gl_Position = GetStandardPos(aRect);
                     oVecOne.xy = uvs[gl_VertexID % 6]; //UV
-                    oVecOne.z = aVecOne.x; //ALpha
+                    oVecOne.z = aVecOne.x / 255.0; //Alpha
                     break;
                 }
                 case 3:{ // Render Copy Part 
                     gl_Position = GetStandardPos(aRect);
                     oVecOne.xy = CalcUVS(aVecOne);
-                    oVecOne.z = aVecTwo.x;
+                    oVecOne.z = aVecTwo.x / 255.0;  //Alpha
                     break;
                 }
                 case 4:{ // Render Copy Ex
                     gl_Position = GetRotPos(aRect,aVecTwo.y, vec2(aVecTwo.z, aVecTwo.w));
                     oVecOne.xy = CalcUVS(aVecOne);
-                    oVecOne.z = aVecTwo.x;
+                    oVecOne.z = aVecTwo.x / 255.0;  //Alpha
                     break;
                 }
                 case 5:{ // Render Copy Circle
                     gl_Position = GetStandardPos(aRect);
                     oVecOne.xy = uvs[gl_VertexID % 6]; //UV
                     oVecOne.z = aVecOne.x; // radius 
-                    oVecOne.w = aVecOne.y; // alpha 
+                    oVecOne.w = aVecOne.y / 255.0;  //Alpha
                     break;
                 }
                 case 6:{ // Render  Circle
@@ -1767,7 +1808,7 @@ void ShaderLoader::LoadSavedShaders() {
                     gl_Position = GetStandardPos(aRect);
                     oVecOne.xy = uvs[gl_VertexID % 6];
                     oVecOne.zw = aRect.zw; // Rect width and Height
-                    oVecTwo.x = aVecOne.x; // alpha
+                    oVecTwo.x = aVecOne.x / 255.0;  //Alpha
                     oVecTwo.y = aVecOne.y; // Rounding Radius
                     break;
                 }
@@ -1776,7 +1817,7 @@ void ShaderLoader::LoadSavedShaders() {
                     gl_Position = GetStandardPos(aRect);
                     oVecOne.xy = CalcUVS(aVecOne); // UV
                     oVecTwo.rgb = aVecTwo.rgb / 255.0;  // Color.rgb
-                    oVecTwo.a = aVecTwo.a; // tex alpha
+                    oVecTwo.a = aVecTwo.a / 255.0;  //Alpha
                     break;
                 }
                 case 10:{ // Render Border
@@ -1800,7 +1841,7 @@ void ShaderLoader::LoadSavedShaders() {
                     gl_Position = GetStandardPos(aRect);
                     vec2 firstTexCoord = CalcUVS(aVecOne); // UV of sourced tex
                     oVecOne = vec4(firstTexCoord,uvs[gl_VertexID % 6]);
-                    oVecTwo.x = aVecTwo.x; // Alpha
+                    oVecTwo.x = aVecTwo.x / 255.0;  //Alpha
                     break;
                 }
                 case 13:{ // Render Double Masked
@@ -1808,7 +1849,7 @@ void ShaderLoader::LoadSavedShaders() {
                     vec2 firstTexCoord = CalcUVS(aVecOne); // UV of sourced tex
                     vec2 secondTexCoord = CalcUVS(aVecTwo); // UV of sourced tex
                     oVecOne = vec4(firstTexCoord,secondTexCoord);
-                    oVecTwo.x = aLastVal; // Alpha
+                    oVecTwo.x = aLastVal / 255.0;  //Alpha
                     break;
                 }
                 case 14:{ // Render Shape

@@ -10,14 +10,14 @@ static void CreateErrorBox(UI* ui, const std::string& text) {
 	PopUpBox *pb =  ui->CreatePopUpBoxF("erroxBox" + std::to_string(RandInt(0, 1000)), 120, 200, 5, 100, 40,nullptr,"arial12px");
 	pb->SetColor(120, 120, 120);
 	pb->text = text;
-	pb->SetRenderTextType(TextRenderType::Centered);
+	pb->SetTextAligment(TextAligment::Centered);
 }
 
 static void CreateInfoBox(UI* ui, const std::string& text) {
 	PopUpBox* pb = ui->CreatePopUpBoxF("erroxBox" + std::to_string(RandInt(0, 1000)), 120, 200, 5, 100, 40, nullptr, "arial12px");
 	pb->SetColor(120, 120, 120);
 	pb->text = text;
-	pb->SetRenderTextType(TextRenderType::Centered);
+	pb->SetTextAligment(TextAligment::Centered);
 }
 
 
@@ -25,47 +25,47 @@ static void CreateInfoBox(UI* ui, const std::string& text) {
 void PathMaker::CreateSaveMenu() {
 	if (!saveSection.GetClickBoxes().empty()) { return; }
 	Label* lb = ui->CreateLabelF("saveBack", 50, 50, 190, 200, nullptr, "arial20px", "Saving", 1.0f, 0, 10);
-	lb->SetRenderTextType(TextRenderType::CenteredX); 
-	lb->SetRenderType(RenderType::Rounded);
+	lb->SetTextAligment(TextAligment::CenteredX); 
+	lb->SetShape(ElemShape::Rounded);
 	lb->SetColor(40, 40, 40, 255); 
 	lb->SetBorder(2, 70, 160, 255); 
 	lb->SetFontColor(40, 255, 255);
 	saveSection.Add(lb);
 
 	ClickBox* cb = ui->CreateClickBoxF("saveTxt", 60, 100, 40, 40, nullptr, "arial12px", "Txt", 1.0f, 0, -15);
-	cb->SetRenderTextType(TextRenderType::CenteredX);
-	cb->SetRenderType(RenderType::Rounded);
+	cb->SetTextAligment(TextAligment::CenteredX);
+	cb->SetShape(ElemShape::Rounded);
 	cb->SetColor(0, 255, 0, 255);
 	cb->SetBorder(2, 70, 160, 255);
 	cb->SetFontColor(40, 255, 255);
 	saveSection.Add(cb);
 
 	cb = ui->CreateClickBoxF("saveCsv", 125, 100, 40, 40, nullptr, "arial12px", "Csv", 1.0f, 0, -15);
-	cb->SetRenderTextType(TextRenderType::CenteredX);
-	cb->SetRenderType(RenderType::Rounded);
+	cb->SetTextAligment(TextAligment::CenteredX);
+	cb->SetShape(ElemShape::Rounded);
 	cb->SetColor(40, 40, 40, 255);
 	cb->SetBorder(2, 70, 160, 255);
 	cb->SetFontColor(40, 255, 255);
 	saveSection.Add(cb);
 
 	cb = ui->CreateClickBoxF("saveBin", 190, 100, 40, 40, nullptr, "arial12px", "Bin", 1.0f, 0, -15);
-	cb->SetRenderTextType(TextRenderType::CenteredX);
-	cb->SetRenderType(RenderType::Rounded);
+	cb->SetTextAligment(TextAligment::CenteredX);
+	cb->SetShape(ElemShape::Rounded);
 	cb->SetColor(40, 40, 40, 255);
 	cb->SetBorder(2, 70, 160, 255);
 	cb->SetFontColor(40, 255, 255);
 	saveSection.Add(cb);
 
 	TextBox* tb = ui->CreateTextBoxF("saveName", 90, 150, 110, 40, nullptr, "arial20px", "Name"); 
-	tb->SetRenderTextType(TextRenderType::Centered);
-	tb->SetRenderType(RenderType::Rounded);
+	tb->SetTextAligment(TextAligment::Centered);
+	tb->SetShape(ElemShape::Rounded);
 	tb->SetColor(70, 70, 70, 255);
 	tb->SetBorder(2, 70, 160, 255);
 	saveSection.Add(tb);
 
 	cb = ui->CreateClickBoxF("saveConf", 125, 200, 40, 30, nullptr, "arial12px", "Save");
-	cb->SetRenderTextType(TextRenderType::Centered);
-	cb->SetRenderType(RenderType::Rounded);
+	cb->SetTextAligment(TextAligment::Centered);
+	cb->SetShape(ElemShape::Rounded);
 	cb->SetColor(40, 40, 40, 255);
 	cb->SetBorder(2, 70, 160, 255);
 	cb->SetFontColor(40, 255, 255);
@@ -168,7 +168,7 @@ std::vector<Point> PathMaker::LoadTxt(const std::string& path){
 			retPath.back().y = std::stoi(line);
 		}
 		catch (const std::exception& e) {
-			std::println("Cannot convert this file to path vector {} ERROR: {}", path, e.what());
+			Logger::Log(std::format("Cannot convert this file to path vector {} ERROR: {}", path, e.what()),LogType::Error);
 			return{};
 		}
 	}
@@ -188,7 +188,7 @@ std::vector<Point> PathMaker::LoadCsv(const std::string& path) {
 		}
 	}
 	catch (const std::exception&) {
-		std::println("Cannot convert this file to path vector {}", path);
+		Logger::Log(std::format("Cannot convert this file to path vector {}", path), LogType::Error);
 		return{};
 	}
 	return retPath;
@@ -214,7 +214,7 @@ std::vector<Point> PathMaker::LoadBin(const std::string& path) {
 	file.read(reinterpret_cast<char*>(retPath.data()),sizeof(Point) * count);
 
 	if (!file) {
-		std::println("Cannot convert this file to path vector {}", path);
+		Logger::Log(std::format("Cannot convert this file to path vector {}", path), LogType::Error);
 		return {};
 	}
 
@@ -338,7 +338,7 @@ void PathMaker::Render() {
 			}
 			break;
 	}
-	ui->RenderRawText(ui->GetFont("arial12px"), 10, 10, statusText, 0, { 230, 230, 230 });
+	ui->DrawRawText(ui->GetFont("arial12px"), 10, 10, statusText, 0, { 230, 230, 230 });
 	ui->Render();
 	ren->Present();
 }
@@ -356,7 +356,7 @@ void PathMaker::Open(bool compressStart, bool compressEnd, bool compressZeros, i
 	MT::ConstextGuard cg;
 	//window = SDL_CreateWindow("Path Maker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 	//	windowW, windowH, SDL_WINDOW_SHOWN | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_OPENGL);
-	window.Init("FileWindow", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowW, windowH
+	window.Init("Path Maker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowW, windowH
 		, SDL_WINDOW_SHOWN | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_OPENGL);
 	ren = new MT::Renderer();
 	ren->Start(window);

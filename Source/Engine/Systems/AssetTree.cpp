@@ -21,14 +21,14 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 	auto FillElem = [](UIElemBase* elem, const std::string &text, int size) {
 		elem->text = text;
-		elem->SetRenderTextType(TextRenderType::CenteredX);
+		elem->SetTextAligment(TextAligment::CenteredX);
 		elem->SetHoverFilter(true, 255, 255, 255, 120);
 		elem->textStartY = size + 5;
 	};
 
 	// Root
 	if (currentFolder.parent) {
-		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size,
+		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, "", x, y, size, size,
 			TexMan::GetTex("RootFolderIcon"), font);
 		FillElem(cb, currentFolder.parent->substr(0, 12), size);
 		rootCb = cb;
@@ -37,7 +37,7 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 	// SubFolders
 	for (auto &subFolder : currentFolder.folders) {
-		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, TexMan::GetTex("FeFolderIcon"),font);
+		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, "", x, y, size, size, TexMan::GetTex("FeFolderIcon"), font);
 		FillElem(cb, subFolder.substr(0, 12), size);
 		folders.emplace_back(cb);
 		x += step;
@@ -49,7 +49,7 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 	// Assets
 	for (auto& asset : currentFolder.assets) {
-		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, AnonUIName(), x, y, size, size, MainConfig::GetExtTexture(asset.ext), font);
+		ClickBox* cb = ui->LCreateClickBox(EditorGlobals::UILayerLow, "", x, y, size, size, MainConfig::GetExtTexture(asset.ext), font);
 		FillElem(cb, std::filesystem::path(asset.name).filename().string().substr(0, 12), size);
 		files.emplace_back(cb);
 		x += step;
@@ -62,16 +62,15 @@ void FolderViev::Create(UI *ui, const MT::Rect& bounds, const AssetFolder &curre
 
 void FolderViev::Clear(UI* ui) {
 	for (auto& lb : folders) {
-		ui->DeleteElement(lb->GetName());
+		ui->DeleteElement(lb);
 	}
 	for (auto& lb : files) {
-		ui->DeleteElement(lb->GetName());
+		ui->DeleteElement(lb);
 	}
 	folders.clear();
 	files.clear();
 	if (rootCb) {
-		ui->DeleteElement(rootCb->GetName());
-		rootCb = nullptr;
+		ui->DeleteElement(rootCb);
 	}
 }
 

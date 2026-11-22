@@ -7,7 +7,6 @@
 #include "TextureManager.h"
 #include "SoundManager.h"
 #include "Renderer.h"
-#include "Basics.h"
 #include "json.hpp"
 
 enum class CastType {
@@ -18,7 +17,7 @@ enum class CastType {
 	Slider
 };
 
-enum class TextRenderType {
+enum class TextAligment {
 	Standard,
 	Centered,
 	FromRight,
@@ -26,7 +25,7 @@ enum class TextRenderType {
 	CenteredY
 };
 
-enum class RenderType {
+enum class ElemShape {
 	Standard,
 	Rounded
 };
@@ -38,12 +37,12 @@ enum class SliderSlide {
 
 
 // Basic non interactive button
-class UIElemBase :public GameObject {
+class UIElemBase{
 protected:
 	std::string name = "";
 	void (*renderFunction)(UIElemBase* ,MT::Renderer*) = nullptr;
 
-	TextRenderType textRenderType = TextRenderType::Standard; // Base is left up corner
+	TextAligment textAligment = TextAligment::Standard; // Base is left up corner
 
 	bool hidden = false;
 
@@ -53,11 +52,14 @@ protected:
 
 	Mix_Chunk* hoverSound = nullptr;
 
-	int zLayer = 0; // Bazowo zawsze 0 
+	unsigned int zLayer = 0; // Bazowo zawsze 0 
 
 	void RenderText(MT::Renderer* renderer);
 
 public:
+	MT::Rect rect{};
+	MT::Texture* texture = nullptr;
+
 
 	// To change name use ui->renameElem
 	const std::string& GetName() const { return name; }
@@ -109,12 +111,12 @@ public:
 		fontColor.A = A;
 	}
 
-	// Use Enum RenderType::
-	void SetRenderType(RenderType renderType) {
-		if (renderType == RenderType::Standard) {
+	// Use Enum ElemShape
+	void SetShape(ElemShape shape) {
+		if (shape == ElemShape::Standard) {
 			renderFunction = &UIElemBase::Render;
 		}
-		else  if (renderType == RenderType::Rounded) {
+		else  if (shape == ElemShape::Rounded) {
 			renderFunction = &UIElemBase::RenderRounded;
 		}
 		else {
@@ -123,7 +125,7 @@ public:
 	}
 	
 	// Use Enum TextRenderType::
-	void SetRenderTextType(TextRenderType textRenderType) {this->textRenderType = textRenderType;}
+	void SetTextAligment(TextAligment textAligment) {this->textAligment = textAligment;}
 
 	bool IsHidden() {return hidden;}
 
@@ -239,6 +241,7 @@ class PopUpBox : public UIElemBase {
 };
 
 class Slider : public UIElemBase {
+	bool selected = false;
 	public:
 
 		SliderSlide slideType = SliderSlide::X; //Enmum class SliderSlide
@@ -249,14 +252,27 @@ class Slider : public UIElemBase {
 			int radius = 0;
 			int pos = 0;
 			if (slideType == SliderSlide::X) {
-				radius = max - min - GetRectangle().w;
-				pos = GetRectangle().x - min;
+				radius = max - min - rect.w;
+				pos = rect.x - min;
 			}
 			else {
-				radius = max - min - GetRectangle().h;
-				pos = GetRectangle().y - min;
+				radius = max - min - rect.h;
+				pos = rect.y - min;
 			}
 			return (float)pos / radius;
+		}
+
+		void SetPosAtPercent(float percent) {
+			percent = std::clamp(percent, 0.0f, 1.0f);
+
+			if (slideType == SliderSlide::X) {
+				int radius = max - min - rect.w;
+				rect.x = min + static_cast<int>(radius * percent);
+			}
+			else {
+				int radius = max - min - rect.h;
+				rect.y = min + static_cast<int>(radius * percent);
+			}
 		}
 
 		friend class UI;
@@ -334,8 +350,28 @@ class UI{
 
 		void DumpSlider(nlohmann::ordered_json& json, Slider* sl);
 
-		void FillElem(UIElemBase* elem, const std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr, Font* font = nullptr,
+		bool CreateHelper(std::string& name, const char* castName);
+
+		void FillElem(UIElemBase* elem, std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr, Font* font = nullptr,
 			const std::string& text = "", float textScale = 1.0f, int textStartX = 0, int textStartY = 0);
+
+		template <typename ElemType>
+		ElemType* AllocateInContainer(unsigned int layer) {
+			ElemType* elem = nullptr;
+			if (settings.useLayersInRendering) {
+				if (layer > 100) { layer = 100; }
+				LayerVec[layer].elements.emplace_back(new ElemType());
+				elem = static_cast<ElemType*>(LayerVec[layer].elements.back());
+			}
+			else {
+				UiElemVec.emplace_back(new ElemType());
+				elem = static_cast<ElemType*>(UiElemVec.back());
+			}
+
+			elem->zLayer = layer;
+			return elem;
+
+		}
 
 		struct Settings {
 		private:
@@ -361,21 +397,21 @@ class UI{
 		friend class UIList;
 		UI(MT::Renderer* renderer);
 
-		Label* LCreateLabel(int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture =nullptr, 
+		Label* LCreateLabel(unsigned int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture =nullptr,
 			Font* font = nullptr,const std::string& text = "", float textScale = 1.0f, int textStartX = 0, int textStartY = 0);
 
-		TextBox* LCreateTextBox(int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr,
+		TextBox* LCreateTextBox(unsigned int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr,
 			Font* font = nullptr,
 			const std::string& text = "", float textScale = 1.0f, int textStartX = 0, int textStartY = 0);
 
-		ClickBox* LCreateClickBox(int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr,
+		ClickBox* LCreateClickBox(unsigned int layer, const std::string& name, int x, int y, int w, int h, MT::Texture* texture = nullptr,
 			Font* font = nullptr,
 			const std::string& text = "", float textScale = 1.0f, int textStartX = 0, int textStartY = 0);
 
-		PopUpBox* LCreatePopUpBox(int layer, const std::string& name, int lifeSpan, int x, int y, int w, int h, MT::Texture* texture = nullptr,
+		PopUpBox* LCreatePopUpBox(unsigned int layer, const std::string& name, int lifeSpan, int x, int y, int w, int h, MT::Texture* texture = nullptr,
 			Font* font = nullptr, const std::string& text = "", float textScale = 1.0f, int textStartX = 0, int textStartY = 0);
 
-		Slider* LCreateSlider(int layer, const std::string& name, int x, int y, int w, int h, SliderSlide slideType, int min, int max,
+		Slider* LCreateSlider(unsigned int layer, const std::string& name, int x, int y, int w, int h, SliderSlide slideType, int min, int max,
 			MT::Texture* texture = nullptr);
 
 		Label* CreateLabel(const std::string &name, int x, int y, int w, int h, MT::Texture* texture = nullptr, Font* font = nullptr,
@@ -441,9 +477,18 @@ class UI{
 			
 		bool DeleteElement(const std::string& name);
 
+		template<typename T>
+		bool DeleteElement(T *&elem) {
+			static_assert(std::is_base_of_v<UIElemBase, T>);
+			if (!elem) { return false; }
+			bool out = DeleteElement(elem->GetName());
+			elem = nullptr;
+			return out;
+		}
+
 		void Render();
 
-		void RenderRawText(Font* font, const int x, const int y, const std::string& text,const int interline, const MT::Color &color);
+		void DrawRawText(Font* font, const int x, const int y, const std::string& text,const int interline, const MT::Color &color);
 
 		// This function should be called only once at the Game::Start function since it is slow because it needs to recrate all ui rendering
 		// If you use z layer from now on you should create new elements with CreateLayered (old way still works but it would be slower)
@@ -512,7 +557,7 @@ public:
 		this->ui = ui;
 		mainElement = mainBtn;
 		Elements.reserve(texts.size());
-		MT::Rect& rect = mainElement->GetRectangle();
+		MT::Rect& rect = mainElement->rect;
 		int y = rect.y + rect.h + space;
 		Font* font = mainElement->font;
 		const std::string& name = mainElement->GetName();
@@ -613,6 +658,8 @@ class UISection {
 
 		std::vector<PopUpBox*> popUpBoxes = {};
 
+		std::vector<Slider*> sliders = {};
+
 		UI* ui = nullptr;
 
 	public:
@@ -650,30 +697,32 @@ class UISection {
 			}
 			popUpBoxes.emplace_back(popUpBox);
 		}
+		void Add(Slider* sl) {
+			if (ui == nullptr) {
+				throw std::runtime_error("UI is nullptr section is not inicialized");
+			}
+			sliders.emplace_back(sl);
+		}
 
 		void Clear() {
-			for (auto& elem: labels) {
-				ui->DeleteElement(elem->GetName());
-			}
-			for (auto& elem : clickBoxes) {
-				ui->DeleteElement(elem->GetName());
-			}
-			for (auto& elem : textBoxes) {
-				ui->DeleteElement(elem->GetName());
-			}
-			for (auto& elem : popUpBoxes) {
-				ui->DeleteElement(elem->GetName());
-			}
-			labels.clear();
-			textBoxes.clear();
-			clickBoxes.clear();
-			popUpBoxes.clear();
+			auto clearVec = [](auto& vec, UI *ui) {
+				for (auto& elem : vec) {
+					ui->DeleteElement(elem->GetName());
+				}
+				vec.clear();
+			};
+			clearVec(labels, ui);
+			clearVec(clickBoxes, ui);
+			clearVec(textBoxes, ui);
+			clearVec(popUpBoxes, ui);
+			clearVec(sliders, ui);
 		}	
 
-		std::vector<Label*>& GetButtons() { return labels; }
+		std::vector<Label*>& GetLabels() { return labels; }
 		std::vector<TextBox*>& GetTextBoxes() { return textBoxes; }
 		std::vector<ClickBox*>& GetClickBoxes() { return clickBoxes; }
 		std::vector<PopUpBox*>& GetPopUpBoxes() { return popUpBoxes; }
+		std::vector<Slider*>& GetSliders() { return sliders; }
 };
 
 // Designed for managing large interfaces WARING it is up to you to cast to corret type one tag should has only one type for safety
