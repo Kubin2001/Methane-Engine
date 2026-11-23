@@ -19,7 +19,6 @@ class EngineScene : public Scene {
 
 	public:
 	void Init() override{
-
 		mainInterface = std::make_unique<MainInterface>(ui);
 		sceneLayout = std::make_unique<SceneLayout>(ui, mainInterface->GetSceneLayoutRect());
 		MainConfig::Load("Common");
@@ -28,7 +27,7 @@ class EngineScene : public Scene {
 			std::filesystem::create_directory(assetsPath);
 		}
 		tree.Init(ui, assetsPath.string(), mainInterface->GetAssetsRect());
-
+		ui->SetLayerClipTest(true, mainInterface->GetSceneLayoutRect(), EditorGlobals::UILayerSceneLayout);
 
 		Logger::Log("Engine Scene On");
 

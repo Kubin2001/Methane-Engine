@@ -12,9 +12,12 @@ class ObjectViev {
 	Object* associatedObject = nullptr;
 
 	public:
-	ObjectViev(const std::string& name, UI *ui, Point pos) {
+	ObjectViev(const std::string& name, UI *ui, const MT::Rect &bounds, int y) {
 		this->name = name;
-		mainButton = ui->LCreateClickBox(EditorGlobals::UILayerLow, "", pos.x, pos.y, 20, 20, TexMan::GetTex("RefreshIcon"), ui->GetFont("arial12px"), name);;
+		mainButton = ui->LCreateClickBox(EditorGlobals::UILayerSceneLayout, "", bounds.x + 10, y, bounds.w - 20, 20, nullptr, ui->GetFont("arial12"), name,1.0f,5);
+		mainButton->SetBorder(1, 255, 255, 255, 120);
+		mainButton->SetColor(30, 30, 30,0);
+		mainButton->SetTextAligment(TextAligment::CenteredY);
 	}
 
 };
@@ -29,8 +32,8 @@ class SceneLayout {
 	}
 
 	void Add(const std::string& name) {
-		Point pos{ bounds.x + 10, static_cast<int>((bounds.y + 10) + (definedObjects.size() * 25)) };
-		definedObjects.emplace_back(ObjectViev(name, ui,pos));
+		int y = static_cast<int>((bounds.y + 10) + (definedObjects.size() * 25));
+		definedObjects.emplace_back(ObjectViev(name, ui, bounds, y));
 		std::println("Called!!!");
 	}
 
